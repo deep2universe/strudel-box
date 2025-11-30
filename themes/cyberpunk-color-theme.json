@@ -1,0 +1,108 @@
+{
+  "name": "Strudel Box - Cyberpunk",
+  "type": "dark",
+  "colors": {
+    "editor.background": "#0a0a0f",
+    "editor.foreground": "#ffffff",
+    "editor.lineHighlightBackground": "#1a1a24",
+    "editor.selectionBackground": "#00ffff33",
+    "editorCursor.foreground": "#00ffff",
+    "editorLineNumber.foreground": "#666680",
+    "editorLineNumber.activeForeground": "#00ffff",
+    
+    "sideBar.background": "#0a0a0f",
+    "sideBar.foreground": "#b0b0c0",
+    "sideBarTitle.foreground": "#00ffff",
+    "sideBarSectionHeader.background": "#12121a",
+    "sideBarSectionHeader.foreground": "#00ffff",
+    
+    "activityBar.background": "#0a0a0f",
+    "activityBar.foreground": "#00ffff",
+    "activityBar.inactiveForeground": "#666680",
+    "activityBarBadge.background": "#ff00ff",
+    "activityBarBadge.foreground": "#ffffff",
+    
+    "statusBar.background": "#12121a",
+    "statusBar.foreground": "#00ffff",
+    "statusBar.debuggingBackground": "#ff00ff",
+    "statusBar.noFolderBackground": "#0a0a0f",
+    
+    "titleBar.activeBackground": "#0a0a0f",
+    "titleBar.activeForeground": "#00ffff",
+    "titleBar.inactiveBackground": "#0a0a0f",
+    "titleBar.inactiveForeground": "#666680",
+    
+    "tab.activeBackground": "#1a1a24",
+    "tab.activeForeground": "#00ffff",
+    "tab.inactiveBackground": "#0a0a0f",
+    "tab.inactiveForeground": "#666680",
+    "tab.border": "#12121a",
+    "tab.activeBorder": "#00ffff",
+    
+    "panel.background": "#0a0a0f",
+    "panel.border": "#12121a",
+    "panelTitle.activeForeground": "#00ffff",
+    "panelTitle.inactiveForeground": "#666680",
+    
+    "terminal.background": "#0a0a0f",
+    "terminal.foreground": "#ffffff",
+    "terminal.ansiCyan": "#00ffff",
+    "terminal.ansiMagenta": "#ff00ff",
+    "terminal.ansiGreen": "#00ff88",
+    "terminal.ansiRed": "#ff4466",
+    
+    "button.background": "#00ffff",
+    "button.foreground": "#0a0a0f",
+    "button.hoverBackground": "#00cccc",
+    
+    "input.background": "#12121a",
+    "input.foreground": "#ffffff",
+    "input.border": "#1a1a24",
+    "input.placeholderForeground": "#666680",
+    "focusBorder": "#00ffff",
+    
+    "list.activeSelectionBackground": "#00ffff33",
+    "list.activeSelectionForeground": "#00ffff",
+    "list.hoverBackground": "#1a1a24",
+    "list.focusBackground": "#00ffff22",
+    
+    "gitDecoration.modifiedResourceForeground": "#00ffff",
+    "gitDecoration.addedResourceForeground": "#00ff88",
+    "gitDecoration.deletedResourceForeground": "#ff4466",
+    "gitDecoration.untrackedResourceForeground": "#ff00ff"
+  },
+  "tokenColors": [
+    {
+      "scope": ["comment", "punctuation.definition.comment"],
+      "settings": { "foreground": "#666680", "fontStyle": "italic" }
+    },
+    {
+      "scope": ["string", "string.quoted"],
+      "settings": { "foreground": "#00ff88" }
+    },
+    {
+      "scope": ["constant.numeric", "constant.language"],
+      "settings": { "foreground": "#ff00ff" }
+    },
+    {
+      "scope": ["keyword", "storage.type", "storage.modifier"],
+      "settings": { "foreground": "#00ffff" }
+    },
+    {
+      "scope": ["entity.name.function", "support.function"],
+      "settings": { "foreground": "#ff00ff" }
+    },
+    {
+      "scope": ["variable", "variable.other"],
+      "settings": { "foreground": "#ffffff" }
+    },
+    {
+      "scope": ["entity.name.type", "entity.name.class"],
+      "settings": { "foreground": "#00ffff" }
+    },
+    {
+      "scope": ["punctuation"],
+      "settings": { "foreground": "#b0b0c0" }
+    }
+  ]
+}

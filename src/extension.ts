@@ -67,11 +67,50 @@ export function activate(context: vscode.ExtensionContext) {
     }
   });
 
+  // Command: Save Pattern
+  const saveCommand = vscode.commands.registerCommand('strudel-box.save', () => {
+    if (StrudelBoxPanel.currentPanel) {
+      StrudelBoxPanel.currentPanel.requestSave();
+    } else {
+      vscode.window.showInformationMessage('Strudel Box is not open');
+    }
+  });
+
+  // Command: Open in Strudel Box (from context menu)
+  const openInReplCommand = vscode.commands.registerCommand('strudel-box.openInRepl', async (uri?: vscode.Uri) => {
+    // Get URI from context menu or active editor
+    const fileUri = uri || vscode.window.activeTextEditor?.document.uri;
+    
+    if (!fileUri) {
+      vscode.window.showWarningMessage('No file selected');
+      return;
+    }
+
+    try {
+      const content = await vscode.workspace.fs.readFile(fileUri);
+      const code = Buffer.from(content).toString('utf-8');
+      
+      // Open panel
+      StrudelBoxPanel.createOrShow(context.extensionUri);
+      
+      // Wait for panel to initialize, then load code
+      setTimeout(() => {
+        if (StrudelBoxPanel.currentPanel) {
+          StrudelBoxPanel.currentPanel.loadCode(code);
+        }
+      }, 500);
+    } catch (err) {
+      vscode.window.showErrorMessage(`Failed to open file: ${err}`);
+    }
+  });
+
   context.subscriptions.push(
     openCommand,
     hushCommand,
     loadFileCommand,
-    setThemeCommand
+    setThemeCommand,
+    saveCommand,
+    openInReplCommand
   );
 }
 

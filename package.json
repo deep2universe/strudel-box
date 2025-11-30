@@ -28,6 +28,62 @@
       {
         "command": "strudel-box.setTheme",
         "title": "Strudel Box: Set Theme"
+      },
+      {
+        "command": "strudel-box.save",
+        "title": "Strudel Box: Save Pattern"
+      },
+      {
+        "command": "strudel-box.openInRepl",
+        "title": "Open in Strudel Box"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "strudel-box.openInRepl",
+          "when": "resourceExtname == .strudel",
+          "group": "navigation"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "strudel-box.openInRepl",
+          "when": "resourceExtname == .strudel",
+          "group": "navigation"
+        }
+      ]
+    },
+    "themes": [
+      {
+        "label": "Strudel Box - Cyberpunk",
+        "uiTheme": "vs-dark",
+        "path": "./themes/cyberpunk-color-theme.json"
+      },
+      {
+        "label": "Strudel Box - Halloween",
+        "uiTheme": "vs-dark",
+        "path": "./themes/halloween-color-theme.json"
+      },
+      {
+        "label": "Strudel Box - 8-Bit",
+        "uiTheme": "vs-dark",
+        "path": "./themes/8bit-color-theme.json"
+      }
+    ],
+    "languages": [
+      {
+        "id": "strudel",
+        "aliases": ["Strudel", "strudel"],
+        "extensions": [".strudel"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "strudel",
+        "scopeName": "source.strudel",
+        "path": "./syntaxes/strudel.tmLanguage.json"
       }
     ]
   },

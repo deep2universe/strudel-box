@@ -141,6 +141,11 @@ function handleExtensionMessage(event: MessageEvent): void {
         document.documentElement.setAttribute('data-theme', message.payload);
       }
       break;
+    case 'requestSave':
+      if (editor) {
+        postMessage('saveCode', getCode(editor));
+      }
+      break;
   }
 }
 

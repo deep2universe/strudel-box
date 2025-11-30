@@ -67,8 +67,8 @@
   - `strudel-box.hush` - Audio stoppen
   - `strudel-box.loadFile` - .strudel Datei laden
   - `strudel-box.setTheme` - Theme wechseln
+  - `strudel-box.save` - Pattern speichern
 - [x] `package.json` Commands registrieren (contributes.commands)
-- [ ] `strudel-box.save` Command hinzufügen - Pattern speichern
 
 ### 2.3 Message Protocol
 - [x] Extension → Webview Messages implementieren
@@ -81,14 +81,14 @@
   - `saveCode` - Code speichern
 
 ### 2.4 File Operations
-- [ ] `.strudel` File Association in `package.json` (contributes.languages)
+- [x] `.strudel` File Association in `package.json` (contributes.languages)
 - [x] Load File Dialog mit Filter
 - [x] Save File Dialog mit `.strudel` Extension
 
 **Checkpoint Phase 2:**
 - [x] "Strudel Box: Hush" Command stoppt Audio
 - [x] "Strudel Box: Load File" lädt .strudel Dateien
-- [ ] "Strudel Box: Save" Command funktioniert
+- [x] "Strudel Box: Save" Command funktioniert
 
 ---
 

@@ -103,6 +103,13 @@ export class StrudelBoxPanel {
   }
 
   /**
+   * Request save from webview
+   */
+  public requestSave(): void {
+    this.sendMessage('requestSave');
+  }
+
+  /**
    * Handle messages from webview
    */
   private async _handleMessage(message: { command: string; payload?: unknown }): Promise<void> {
