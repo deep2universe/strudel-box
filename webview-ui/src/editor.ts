@@ -3,7 +3,7 @@
  */
 
 import { EditorView, basicSetup } from 'codemirror';
-import { EditorState } from '@codemirror/state';
+import { EditorState, Prec } from '@codemirror/state';
 import { javascript } from '@codemirror/lang-javascript';
 import { keymap } from '@codemirror/view';
 
@@ -18,25 +18,29 @@ export function createEditor(
   onEvaluate: EvaluateCallback
 ): EditorView {
   
-  // Custom keymap for Strudel
-  const strudelKeymap = keymap.of([
+  // Custom keymap for Strudel - with highest priority
+  const strudelKeymap = Prec.highest(keymap.of([
     {
       key: 'Ctrl-Enter',
       mac: 'Cmd-Enter',
       run: (view) => {
+        console.log('[STRUDEL-EDITOR] Cmd/Ctrl+Enter pressed - evaluating');
         onEvaluate(view.state.doc.toString());
-        return true;
-      }
+        return true; // Prevent default behavior
+      },
+      preventDefault: true
     },
     {
       key: 'Ctrl-.',
       mac: 'Cmd-.',
       run: () => {
+        console.log('[STRUDEL-EDITOR] Cmd/Ctrl+. pressed - hushing');
         window.dispatchEvent(new CustomEvent('strudel-hush'));
         return true;
-      }
+      },
+      preventDefault: true
     }
-  ]);
+  ]));
 
   // Dark theme using CSS variables
   const darkTheme = EditorView.theme({
@@ -80,10 +84,10 @@ export function createEditor(
   const state = EditorState.create({
     doc: initialCode,
     extensions: [
+      strudelKeymap,  // Highest priority - MUST be first
       basicSetup,
       javascript(),
       darkTheme,
-      strudelKeymap,
       EditorView.lineWrapping
     ]
   });
