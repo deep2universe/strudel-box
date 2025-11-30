@@ -180,10 +180,22 @@ export class StrudelBoxPanel {
   <link rel="stylesheet" href="${styleUri}">
 </head>
 <body>
+  <!-- Particle Effects Canvas -->
+  <canvas id="particles-canvas"></canvas>
+  
   <div id="app">
     <header>
-      <h1>🎵 Strudel-Box-REPL</h1>
-      <span class="tagline">Code your beats. Visualize your sound. Share your vibe.</span>
+      <div class="header-left">
+        <h1>🎵 Strudel Box</h1>
+        <span class="tagline">Code your beats. Visualize your sound. Share your vibe.</span>
+      </div>
+      
+      <!-- Theme Switcher -->
+      <div class="theme-switcher">
+        <button class="theme-btn active" data-theme="default" title="Cyberpunk Theme">🌃</button>
+        <button class="theme-btn" data-theme="halloween" title="Halloween Theme">🎃</button>
+        <button class="theme-btn" data-theme="8bit" title="8-Bit Theme">👾</button>
+      </div>
     </header>
     
     <main>
@@ -192,8 +204,14 @@ export class StrudelBoxPanel {
       </div>
       
       <div id="controls">
-        <button id="play" class="btn btn-play">▶ Play</button>
-        <button id="stop" class="btn btn-stop">⏹ Stop</button>
+        <button id="play" class="btn btn-play">
+          <span class="btn-icon"></span>
+          <span class="btn-text">▶ Play</span>
+        </button>
+        <button id="stop" class="btn btn-stop">
+          <span class="btn-icon"></span>
+          <span class="btn-text">⏹ Stop</span>
+        </button>
         <span id="status">Ready</span>
         <div class="keyboard-hints">
           <span><kbd>Ctrl</kbd>+<kbd>Enter</kbd> Play</span>

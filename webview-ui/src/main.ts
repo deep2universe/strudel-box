@@ -1,88 +1,115 @@
 /**
  * Strudel Box - Webview Entry Point
- * BUILD: WEBVIEW_2024_003
+ * Complete Theme System with Particles and Icons
  */
 
 import { createEditor, setCode, getCode } from './editor';
-import { postMessage } from './vscode';
+import { postMessage, saveState, getState } from './vscode';
+import { ParticleSystem, ThemeType } from './particles';
+import { updateIcons, getThemeDisplayName } from './icons';
 import './styles.css';
 
-// Strudel global declarations - extended for debugging
+// Strudel global declarations
 declare global {
   interface Window {
     initStrudel: () => Promise<void>;
     evaluate: (code: string) => Promise<unknown>;
     hush: () => void;
     getAudioContext: () => AudioContext;
-    // Additional Strudel globals that might exist
     repl?: unknown;
     scheduler?: unknown;
-    stop?: () => void;
+    strudelStop?: () => void;
     silence?: () => void;
   }
 }
 
-// Default code shown on startup - using sounds that work without samples
-const DEFAULT_CODE = `// Strudel Box - Code your beats
+// Default code shown on startup
+const DEFAULT_CODE = `// 🎵 Strudel Box - Code your beats!
 // Press Ctrl+Enter (Cmd+Enter on Mac) to play
 // Press Ctrl+. (Cmd+. on Mac) to stop
 
-// Simple synth pattern (no samples needed)
+// Simple synth pattern
 note("c3 e3 g3 c4")
   .sound("sawtooth")
   .lpf(800)
   .room(0.3)`;
 
 // State
+interface AppState {
+  theme: ThemeType;
+  code?: string;
+}
+
 let editor: ReturnType<typeof createEditor> | null = null;
 let isInitialized = false;
 let isPlaying = false;
 let audioContext: AudioContext | null = null;
+let particleSystem: ParticleSystem | null = null;
+let currentTheme: ThemeType = 'default';
 
-console.log('[STRUDEL-BOX-WEBVIEW] Script loaded - WEBVIEW_2024_003');
+console.log('[STRUDEL-BOX] Webview loaded');
 
-/**
- * Log all Strudel-related functions on window for debugging
- */
-function logStrudelGlobals(): void {
-  const strudelFunctions = [
-    'initStrudel', 'evaluate', 'hush', 'getAudioContext',
-    'repl', 'scheduler', 'stop', 'silence', 'note', 's', 'sound',
-    'setcps', 'getcps', 'panic'
-  ];
-  
-  console.log('[STRUDEL-BOX-WEBVIEW] === Strudel Globals ===');
-  strudelFunctions.forEach(fn => {
-    const val = (window as Record<string, unknown>)[fn];
-    if (val !== undefined) {
-      console.log(`[STRUDEL-BOX-WEBVIEW] window.${fn}:`, typeof val);
-    }
-  });
-  console.log('[STRUDEL-BOX-WEBVIEW] === End Globals ===');
-}
 
 /**
  * Initialize the webview
  */
 async function init(): Promise<void> {
-  console.log('[STRUDEL-BOX-WEBVIEW] init() called');
+  console.log('[STRUDEL-BOX] Initializing...');
   
+  // Restore saved state
+  const savedState = getState<AppState>();
+  if (savedState?.theme) {
+    currentTheme = savedState.theme;
+  }
+  
+  // Apply initial theme
+  applyTheme(currentTheme);
+  
+  // Initialize particle system
+  const particleCanvas = document.getElementById('particles-canvas') as HTMLCanvasElement;
+  if (particleCanvas) {
+    particleSystem = new ParticleSystem(particleCanvas);
+    particleSystem.setTheme(currentTheme);
+    particleSystem.start();
+  }
+  
+  // Initialize editor
   const container = document.getElementById('editor');
   if (!container) {
-    console.error('[STRUDEL-BOX-WEBVIEW] Editor container not found');
+    console.error('[STRUDEL-BOX] Editor container not found');
     return;
   }
 
-  // Create CodeMirror editor
-  editor = createEditor(container, DEFAULT_CODE, async (code) => {
-    console.log('[STRUDEL-BOX-WEBVIEW] Editor callback - evaluating code');
+  const initialCode = savedState?.code || DEFAULT_CODE;
+  editor = createEditor(container, initialCode, async (code) => {
     await play(code);
   });
 
+  // Setup button handlers
+  setupControls();
+  
+  // Setup theme switcher
+  setupThemeSwitcher();
+  
+  // Update icons for current theme
+  updateIcons(currentTheme);
+
+  // Listen for messages from extension
+  window.addEventListener('message', handleExtensionMessage);
+
+  // Notify extension that webview is ready
+  postMessage('ready');
+  
+  console.log('[STRUDEL-BOX] Initialization complete');
+}
+
+/**
+ * Setup control buttons
+ */
+function setupControls(): void {
   // Play button
   const playBtn = document.getElementById('play');
   playBtn?.addEventListener('click', async () => {
-    console.log('[STRUDEL-BOX-WEBVIEW] Play button clicked');
     if (editor) {
       await play(getCode(editor));
     }
@@ -91,33 +118,88 @@ async function init(): Promise<void> {
   // Stop button
   const stopBtn = document.getElementById('stop');
   stopBtn?.addEventListener('click', () => {
-    console.log('[STRUDEL-BOX-WEBVIEW] Stop button clicked');
     stop();
   });
 
-  // Listen for hush event from keyboard shortcut (Ctrl+. / Cmd+.)
+  // Listen for hush event from keyboard shortcut
   window.addEventListener('strudel-hush', () => {
-    console.log('[STRUDEL-BOX-WEBVIEW] strudel-hush event received');
     stop();
   });
 
   // Global keyboard listener for Cmd+. / Ctrl+.
   document.addEventListener('keydown', (e) => {
-    // Cmd+. on Mac or Ctrl+. on Windows/Linux
     if ((e.metaKey || e.ctrlKey) && e.key === '.') {
-      console.log('[STRUDEL-BOX-WEBVIEW] Cmd/Ctrl+. pressed - stopping');
       e.preventDefault();
       stop();
     }
   });
+}
 
-  // Listen for messages from extension
-  window.addEventListener('message', handleExtensionMessage);
-
-  // Notify extension that webview is ready
-  postMessage('ready');
+/**
+ * Setup theme switcher buttons
+ */
+function setupThemeSwitcher(): void {
+  const themeBtns = document.querySelectorAll('.theme-btn');
   
-  console.log('[STRUDEL-BOX-WEBVIEW] Initialization complete');
+  themeBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const theme = btn.getAttribute('data-theme') as ThemeType;
+      if (theme) {
+        setTheme(theme);
+      }
+    });
+  });
+}
+
+
+/**
+ * Set and apply theme
+ */
+function setTheme(theme: ThemeType): void {
+  currentTheme = theme;
+  applyTheme(theme);
+  
+  // Update particle system
+  if (particleSystem) {
+    particleSystem.setTheme(theme);
+  }
+  
+  // Update icons
+  updateIcons(theme);
+  
+  // Update active button state
+  document.querySelectorAll('.theme-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-theme') === theme);
+  });
+  
+  // Save state
+  saveCurrentState();
+  
+  // Log theme change
+  console.log(`[STRUDEL-BOX] Theme changed to: ${getThemeDisplayName(theme)}`);
+}
+
+/**
+ * Apply theme to document
+ */
+function applyTheme(theme: ThemeType): void {
+  document.documentElement.setAttribute('data-theme', theme);
+  
+  // Update active button
+  document.querySelectorAll('.theme-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-theme') === theme);
+  });
+}
+
+/**
+ * Save current state
+ */
+function saveCurrentState(): void {
+  const state: AppState = {
+    theme: currentTheme,
+    code: editor ? getCode(editor) : undefined
+  };
+  saveState(state);
 }
 
 /**
@@ -125,12 +207,13 @@ async function init(): Promise<void> {
  */
 function handleExtensionMessage(event: MessageEvent): void {
   const message = event.data;
-  console.log('[STRUDEL-BOX-WEBVIEW] Message from extension:', message.command);
+  console.log('[STRUDEL-BOX] Message from extension:', message.command);
   
   switch (message.command) {
     case 'loadCode':
       if (editor && message.payload) {
         setCode(editor, message.payload);
+        saveCurrentState();
       }
       break;
     case 'hush':
@@ -138,7 +221,7 @@ function handleExtensionMessage(event: MessageEvent): void {
       break;
     case 'setTheme':
       if (message.payload) {
-        document.documentElement.setAttribute('data-theme', message.payload);
+        setTheme(message.payload as ThemeType);
       }
       break;
     case 'requestSave':
@@ -149,100 +232,78 @@ function handleExtensionMessage(event: MessageEvent): void {
   }
 }
 
+
 /**
  * Play/evaluate Strudel code
  */
 async function play(code: string): Promise<void> {
-  console.log('[STRUDEL-BOX-WEBVIEW] play() called');
+  console.log('[STRUDEL-BOX] Playing...');
   
   try {
     updateStatus('Initializing...', 'playing');
     
     // Initialize Strudel on first play (requires user interaction)
     if (!isInitialized) {
-      console.log('[STRUDEL-BOX-WEBVIEW] Initializing Strudel...');
+      console.log('[STRUDEL-BOX] Initializing Strudel...');
       await window.initStrudel();
       isInitialized = true;
       
-      // Get AudioContext reference for fallback stop
+      // Get AudioContext reference
       if (typeof window.getAudioContext === 'function') {
         audioContext = window.getAudioContext();
-        console.log('[STRUDEL-BOX-WEBVIEW] AudioContext obtained, state:', audioContext?.state);
+        console.log('[STRUDEL-BOX] AudioContext state:', audioContext?.state);
       }
-      
-      console.log('[STRUDEL-BOX-WEBVIEW] Strudel initialized successfully');
-      logStrudelGlobals();
     }
     
     // Resume AudioContext if suspended
     if (audioContext && audioContext.state === 'suspended') {
-      console.log('[STRUDEL-BOX-WEBVIEW] Resuming AudioContext...');
       await audioContext.resume();
     }
     
     // Evaluate the code
-    console.log('[STRUDEL-BOX-WEBVIEW] Evaluating code...');
-    const result = await window.evaluate(code);
-    console.log('[STRUDEL-BOX-WEBVIEW] Evaluate result:', result);
+    await window.evaluate(code);
     
     isPlaying = true;
     updateStatus('▶ Playing', 'playing');
-    console.log('[STRUDEL-BOX-WEBVIEW] Code evaluated, playing');
+    saveCurrentState();
     
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err);
-    console.error('[STRUDEL-BOX-WEBVIEW] Strudel error:', errorMessage);
+    console.error('[STRUDEL-BOX] Error:', errorMessage);
     updateStatus(`❌ ${errorMessage}`, 'error');
     postMessage('error', errorMessage);
   }
 }
 
 /**
- * Stop all audio - tries multiple methods
+ * Stop all audio
  */
 function stop(): void {
-  console.log('[STRUDEL-BOX-WEBVIEW] stop() called');
-  console.log('[STRUDEL-BOX-WEBVIEW] isInitialized:', isInitialized);
-  console.log('[STRUDEL-BOX-WEBVIEW] isPlaying:', isPlaying);
+  console.log('[STRUDEL-BOX] Stopping...');
   
   try {
-    // Method 1: Try window.hush()
+    // Try window.hush()
     if (typeof window.hush === 'function') {
-      console.log('[STRUDEL-BOX-WEBVIEW] Method 1: Calling window.hush()');
       window.hush();
-      console.log('[STRUDEL-BOX-WEBVIEW] window.hush() called');
     }
     
-    // Method 2: Try window.stop() if it exists
-    if (typeof window.stop === 'function' && window.stop !== window.stop) {
-      console.log('[STRUDEL-BOX-WEBVIEW] Method 2: Calling window.stop()');
-      // Note: window.stop is a native browser function, so we skip this
-    }
-    
-    // Method 3: Try evaluating silence/hush pattern
+    // Try evaluating silence pattern
     if (isInitialized && typeof window.evaluate === 'function') {
-      console.log('[STRUDEL-BOX-WEBVIEW] Method 3: Evaluating silence pattern');
-      // Evaluate an empty pattern or silence to stop
-      window.evaluate('silence').catch(e => {
-        console.log('[STRUDEL-BOX-WEBVIEW] silence eval failed, trying hush()');
+      window.evaluate('silence').catch(() => {
         window.evaluate('hush()').catch(() => {});
       });
     }
     
-    // Method 4: Suspend AudioContext as last resort
+    // Suspend AudioContext as fallback
     if (audioContext && audioContext.state === 'running') {
-      console.log('[STRUDEL-BOX-WEBVIEW] Method 4: Suspending AudioContext');
-      audioContext.suspend().then(() => {
-        console.log('[STRUDEL-BOX-WEBVIEW] AudioContext suspended');
-      });
+      audioContext.suspend();
     }
     
     isPlaying = false;
     updateStatus('⏹ Stopped', 'stopped');
-    console.log('[STRUDEL-BOX-WEBVIEW] Stop complete');
     
   } catch (err) {
-    console.error('[STRUDEL-BOX-WEBVIEW] Error stopping:', err);
+    console.error('[STRUDEL-BOX] Error stopping:', err);
   }
 }
 

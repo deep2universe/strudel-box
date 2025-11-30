@@ -1,5 +1,6 @@
 /**
- * Strudel Box - Styles & Themes
+ * Strudel Box - Complete Theme System
+ * Cyberpunk (Default), Halloween, 8-Bit
  */
 
 /* ============================================
@@ -14,10 +15,18 @@
   --text-muted: #666680;
   --accent-primary: #00ffff;
   --accent-secondary: #ff00ff;
+  --accent-tertiary: #ffff00;
   --accent-primary-transparent: rgba(0, 255, 255, 0.2);
+  --accent-secondary-transparent: rgba(255, 0, 255, 0.2);
   --success: #00ff88;
   --error: #ff4466;
+  --warning: #ffaa00;
   --border-radius: 8px;
+  --glow-primary: 0 0 20px rgba(0, 255, 255, 0.5);
+  --glow-secondary: 0 0 20px rgba(255, 0, 255, 0.5);
+  --font-mono: 'Fira Code', 'JetBrains Mono', 'Consolas', monospace;
+  --transition-fast: 0.15s ease;
+  --transition-medium: 0.3s ease;
 }
 
 /* ============================================
@@ -36,7 +45,23 @@ body {
   height: 100vh;
   overflow: hidden;
   line-height: 1.5;
+  position: relative;
 }
+
+/* ============================================
+   Particle Canvas (Background)
+   ============================================ */
+#particles-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.7;
+}
+
 
 /* ============================================
    App Layout
@@ -47,31 +72,90 @@ body {
   height: 100%;
   padding: 16px;
   gap: 16px;
+  position: relative;
+  z-index: 1;
 }
 
 /* ============================================
-   Header
+   Header - Cyberpunk Default
    ============================================ */
 header {
   display: flex;
-  align-items: baseline;
+  align-items: center;
+  justify-content: space-between;
   gap: 16px;
   flex-shrink: 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--bg-tertiary);
+}
+
+.header-left {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
 }
 
 header h1 {
   font-size: 24px;
-  font-weight: 600;
+  font-weight: 700;
   background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  text-shadow: var(--glow-primary);
+  animation: titlePulse 3s ease-in-out infinite;
+}
+
+@keyframes titlePulse {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.2); }
 }
 
 .tagline {
   color: var(--text-muted);
-  font-size: 14px;
+  font-size: 13px;
+  font-style: italic;
 }
+
+/* ============================================
+   Theme Switcher
+   ============================================ */
+.theme-switcher {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.theme-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid var(--bg-tertiary);
+  background: var(--bg-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+
+.theme-btn:hover {
+  border-color: var(--accent-primary);
+  transform: scale(1.1);
+  box-shadow: var(--glow-primary);
+}
+
+.theme-btn.active {
+  border-color: var(--accent-primary);
+  background: var(--accent-primary-transparent);
+  box-shadow: var(--glow-primary);
+}
+
+.theme-btn[data-theme="default"] { --preview-color: #00ffff; }
+.theme-btn[data-theme="halloween"] { --preview-color: #ff6600; }
+.theme-btn[data-theme="8bit"] { --preview-color: #00ff00; }
+
 
 /* ============================================
    Main Content
@@ -94,6 +178,13 @@ main {
   border: 1px solid var(--bg-tertiary);
   background: var(--bg-secondary);
   min-height: 200px;
+  box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.3);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+#editor-container:focus-within {
+  border-color: var(--accent-primary);
+  box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.3), var(--glow-primary);
 }
 
 #editor {
@@ -117,19 +208,22 @@ main {
   align-items: center;
   gap: 12px;
   flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
 .btn {
-  padding: 10px 24px;
+  padding: 12px 28px;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--border-radius);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--transition-fast);
   display: flex;
   align-items: center;
   gap: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .btn:focus {
@@ -137,14 +231,29 @@ main {
   outline-offset: 2px;
 }
 
+.btn-icon {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
 .btn-play {
-  background: var(--accent-primary);
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
   color: var(--bg-primary);
+  box-shadow: var(--glow-primary);
 }
 
 .btn-play:hover {
-  filter: brightness(1.1);
-  transform: translateY(-1px);
+  filter: brightness(1.15);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(0, 255, 255, 0.4);
 }
 
 .btn-play:active {
@@ -152,18 +261,21 @@ main {
 }
 
 .btn-stop {
-  background: var(--accent-secondary);
+  background: linear-gradient(135deg, var(--accent-secondary), var(--error));
   color: white;
+  box-shadow: var(--glow-secondary);
 }
 
 .btn-stop:hover {
-  filter: brightness(1.1);
-  transform: translateY(-1px);
+  filter: brightness(1.15);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(255, 0, 255, 0.4);
 }
 
 .btn-stop:active {
   transform: translateY(0);
 }
+
 
 /* ============================================
    Status
@@ -172,13 +284,24 @@ main {
   color: var(--text-muted);
   font-size: 14px;
   margin-left: auto;
-  padding: 6px 12px;
+  padding: 8px 16px;
   background: var(--bg-secondary);
-  border-radius: 4px;
+  border-radius: var(--border-radius);
+  border: 1px solid var(--bg-tertiary);
+  font-family: var(--font-mono);
+  transition: all var(--transition-fast);
 }
 
 #status.playing {
   color: var(--success);
+  border-color: var(--success);
+  box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+  animation: statusPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes statusPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
 }
 
 #status.stopped {
@@ -187,6 +310,8 @@ main {
 
 #status.error {
   color: var(--error);
+  border-color: var(--error);
+  box-shadow: 0 0 10px rgba(255, 68, 102, 0.3);
 }
 
 /* ============================================
@@ -201,32 +326,556 @@ main {
 
 .keyboard-hints kbd {
   background: var(--bg-tertiary);
-  padding: 2px 6px;
+  padding: 3px 8px;
   border-radius: 4px;
-  font-family: inherit;
+  font-family: var(--font-mono);
   font-size: 11px;
+  border: 1px solid var(--bg-secondary);
+  box-shadow: 0 2px 0 var(--bg-primary);
 }
 
 /* ============================================
-   Halloween Theme
+   HALLOWEEN THEME 🎃
    ============================================ */
 [data-theme="halloween"] {
-  --bg-primary: #1a0a1a;
-  --bg-secondary: #2a1a2a;
-  --bg-tertiary: #3a2a3a;
+  --bg-primary: #0d0a12;
+  --bg-secondary: #1a1020;
+  --bg-tertiary: #2a1a30;
+  --text-primary: #f0e6ff;
+  --text-secondary: #c0a0d0;
+  --text-muted: #806090;
   --accent-primary: #ff6600;
   --accent-secondary: #8b00ff;
-  --accent-primary-transparent: rgba(255, 102, 0, 0.2);
+  --accent-tertiary: #00ff66;
+  --accent-primary-transparent: rgba(255, 102, 0, 0.25);
+  --accent-secondary-transparent: rgba(139, 0, 255, 0.25);
+  --success: #00ff66;
+  --error: #ff3366;
+  --warning: #ffcc00;
+  --glow-primary: 0 0 25px rgba(255, 102, 0, 0.6);
+  --glow-secondary: 0 0 25px rgba(139, 0, 255, 0.6);
 }
 
+[data-theme="halloween"] body {
+  background: radial-gradient(ellipse at bottom, #1a1020 0%, #0d0a12 100%);
+}
+
+[data-theme="halloween"] header h1 {
+  background: linear-gradient(135deg, #ff6600, #ff9933, #ffcc00);
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: spookyFlicker 4s ease-in-out infinite;
+}
+
+@keyframes spookyFlicker {
+  0%, 100% { opacity: 1; filter: brightness(1); }
+  10% { opacity: 0.8; filter: brightness(0.8); }
+  12% { opacity: 1; filter: brightness(1.1); }
+  50% { opacity: 1; filter: brightness(1); }
+  52% { opacity: 0.9; filter: brightness(0.9); }
+  54% { opacity: 1; filter: brightness(1); }
+}
+
+[data-theme="halloween"] .btn-play {
+  background: linear-gradient(135deg, #ff6600, #ff9933);
+  box-shadow: 0 0 20px rgba(255, 102, 0, 0.5), inset 0 0 20px rgba(255, 153, 51, 0.3);
+}
+
+[data-theme="halloween"] .btn-stop {
+  background: linear-gradient(135deg, #8b00ff, #6600cc);
+  box-shadow: 0 0 20px rgba(139, 0, 255, 0.5);
+}
+
+/* Halloween fog overlay */
+[data-theme="halloween"]::before {
+  content: '';
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 30%;
+  background: linear-gradient(to top, rgba(139, 0, 255, 0.1), transparent);
+  pointer-events: none;
+  z-index: 0;
+  animation: fogDrift 8s ease-in-out infinite;
+}
+
+@keyframes fogDrift {
+  0%, 100% { opacity: 0.5; transform: translateY(0); }
+  50% { opacity: 0.8; transform: translateY(-10px); }
+}
+
+
 /* ============================================
-   8-Bit Theme
+   8-BIT THEME 👾
    ============================================ */
 [data-theme="8bit"] {
   --bg-primary: #000000;
   --bg-secondary: #0a0a0a;
   --bg-tertiary: #1a1a1a;
+  --text-primary: #00ff00;
+  --text-secondary: #00cc00;
+  --text-muted: #006600;
   --accent-primary: #00ff00;
   --accent-secondary: #ff0000;
+  --accent-tertiary: #ffff00;
   --accent-primary-transparent: rgba(0, 255, 0, 0.2);
+  --accent-secondary-transparent: rgba(255, 0, 0, 0.2);
+  --success: #00ff00;
+  --error: #ff0000;
+  --warning: #ffff00;
+  --glow-primary: 0 0 15px rgba(0, 255, 0, 0.7);
+  --glow-secondary: 0 0 15px rgba(255, 0, 0, 0.7);
+  --border-radius: 0px;
+  --font-mono: 'Press Start 2P', 'Courier New', monospace;
+}
+
+[data-theme="8bit"] body {
+  font-family: 'Courier New', monospace;
+  image-rendering: pixelated;
+  background: #000000;
+}
+
+[data-theme="8bit"] header h1 {
+  background: none;
+  -webkit-text-fill-color: #00ff00;
+  color: #00ff00;
+  text-shadow: 
+    2px 2px 0 #003300,
+    4px 4px 0 #001100,
+    0 0 10px #00ff00;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 2px;
+  animation: pixelBlink 1s step-end infinite;
+}
+
+@keyframes pixelBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.9; }
+}
+
+[data-theme="8bit"] .tagline {
+  color: #006600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+[data-theme="8bit"] .btn {
+  border-radius: 0;
+  border: 4px solid;
+  font-family: 'Courier New', monospace;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  box-shadow: 
+    4px 4px 0 var(--bg-tertiary),
+    inset -2px -2px 0 rgba(0, 0, 0, 0.3),
+    inset 2px 2px 0 rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="8bit"] .btn:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 
+    6px 6px 0 var(--bg-tertiary),
+    inset -2px -2px 0 rgba(0, 0, 0, 0.3),
+    inset 2px 2px 0 rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="8bit"] .btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: 
+    2px 2px 0 var(--bg-tertiary),
+    inset -2px -2px 0 rgba(0, 0, 0, 0.3),
+    inset 2px 2px 0 rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="8bit"] .btn-play {
+  background: #00ff00;
+  border-color: #00cc00;
+  color: #000000;
+}
+
+[data-theme="8bit"] .btn-stop {
+  background: #ff0000;
+  border-color: #cc0000;
+  color: #ffffff;
+}
+
+[data-theme="8bit"] #editor-container {
+  border: 4px solid #00ff00;
+  border-radius: 0;
+  box-shadow: 
+    8px 8px 0 #003300,
+    inset 0 0 20px rgba(0, 255, 0, 0.1);
+}
+
+[data-theme="8bit"] #status {
+  border-radius: 0;
+  border: 2px solid #00ff00;
+  font-family: 'Courier New', monospace;
+  text-transform: uppercase;
+}
+
+[data-theme="8bit"] .keyboard-hints kbd {
+  border-radius: 0;
+  border: 2px solid #006600;
+  background: #001100;
+  color: #00ff00;
+}
+
+/* CRT Scanline Effect */
+[data-theme="8bit"]::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.15),
+    rgba(0, 0, 0, 0.15) 1px,
+    transparent 1px,
+    transparent 2px
+  );
+  pointer-events: none;
+  z-index: 1000;
+  animation: scanlines 0.1s linear infinite;
+}
+
+@keyframes scanlines {
+  0% { background-position: 0 0; }
+  100% { background-position: 0 4px; }
+}
+
+/* CRT Screen Flicker */
+[data-theme="8bit"] #app {
+  animation: crtFlicker 0.15s infinite;
+}
+
+@keyframes crtFlicker {
+  0% { opacity: 0.97; }
+  50% { opacity: 1; }
+  100% { opacity: 0.98; }
+}
+
+/* CRT Vignette */
+[data-theme="8bit"] body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 0%,
+    transparent 60%,
+    rgba(0, 0, 0, 0.4) 100%
+  );
+  pointer-events: none;
+  z-index: 999;
+}
+
+
+/* ============================================
+   Theme Transition Effects
+   ============================================ */
+body,
+#app,
+header,
+header h1,
+.tagline,
+#editor-container,
+.btn,
+#status,
+.keyboard-hints kbd {
+  transition: 
+    background var(--transition-medium),
+    background-color var(--transition-medium),
+    color var(--transition-medium),
+    border-color var(--transition-medium),
+    box-shadow var(--transition-medium);
+}
+
+/* ============================================
+   Responsive Design
+   ============================================ */
+@media (max-width: 600px) {
+  #app {
+    padding: 12px;
+    gap: 12px;
+  }
+  
+  header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .header-left {
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  header h1 {
+    font-size: 20px;
+  }
+  
+  .tagline {
+    font-size: 11px;
+  }
+  
+  .theme-switcher {
+    align-self: flex-end;
+  }
+  
+  #controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .btn {
+    justify-content: center;
+  }
+  
+  #status {
+    margin-left: 0;
+    text-align: center;
+  }
+  
+  .keyboard-hints {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+}
+
+/* ============================================
+   Accessibility
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  
+  [data-theme="8bit"]::after {
+    display: none;
+  }
+}
+
+/* Focus visible for keyboard navigation */
+.btn:focus-visible,
+.theme-btn:focus-visible {
+  outline: 3px solid var(--accent-primary);
+  outline-offset: 3px;
+}
+
+/* ============================================
+   Loading State
+   ============================================ */
+.loading {
+  position: relative;
+  pointer-events: none;
+}
+
+.loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  margin: -10px 0 0 -10px;
+  border: 2px solid var(--accent-primary);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ============================================
+   Scrollbar Styling
+   ============================================ */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-primary-transparent);
+}
+
+[data-theme="8bit"] ::-webkit-scrollbar-thumb {
+  border-radius: 0;
+}
+
+
+/* ============================================
+   HALLOWEEN ENHANCED EFFECTS 🎃
+   ============================================ */
+
+/* Spooky text glow for Halloween */
+[data-theme="halloween"] .tagline {
+  color: #a060c0;
+  text-shadow: 0 0 10px rgba(139, 0, 255, 0.5);
+}
+
+/* Pulsing orange glow on buttons */
+[data-theme="halloween"] .btn-play {
+  animation: pumpkinPulse 2s ease-in-out infinite;
+}
+
+@keyframes pumpkinPulse {
+  0%, 100% { 
+    box-shadow: 0 0 20px rgba(255, 102, 0, 0.5), 0 0 40px rgba(255, 102, 0, 0.2);
+  }
+  50% { 
+    box-shadow: 0 0 30px rgba(255, 102, 0, 0.7), 0 0 60px rgba(255, 102, 0, 0.3);
+  }
+}
+
+/* Ghost glow on stop button */
+[data-theme="halloween"] .btn-stop {
+  animation: ghostFloat 3s ease-in-out infinite;
+}
+
+@keyframes ghostFloat {
+  0%, 100% { 
+    transform: translateY(0);
+    box-shadow: 0 0 20px rgba(139, 0, 255, 0.5);
+  }
+  50% { 
+    transform: translateY(-3px);
+    box-shadow: 0 0 30px rgba(139, 0, 255, 0.7), 0 0 50px rgba(139, 0, 255, 0.3);
+  }
+}
+
+/* Spooky editor border */
+[data-theme="halloween"] #editor-container {
+  border-color: #3a1a4a;
+  box-shadow: 
+    inset 0 0 30px rgba(139, 0, 255, 0.1),
+    0 0 20px rgba(255, 102, 0, 0.1);
+}
+
+[data-theme="halloween"] #editor-container:focus-within {
+  border-color: #ff6600;
+  box-shadow: 
+    inset 0 0 30px rgba(139, 0, 255, 0.15),
+    0 0 30px rgba(255, 102, 0, 0.3);
+}
+
+/* Halloween status effects */
+[data-theme="halloween"] #status.playing {
+  color: #00ff66;
+  text-shadow: 0 0 10px rgba(0, 255, 102, 0.5);
+  border-color: #00ff66;
+}
+
+/* Spooky theme button hover */
+[data-theme="halloween"] .theme-btn:hover {
+  box-shadow: 0 0 15px rgba(255, 102, 0, 0.6);
+}
+
+/* ============================================
+   8-BIT ENHANCED EFFECTS 👾
+   ============================================ */
+
+/* Pixel-perfect borders */
+[data-theme="8bit"] .theme-btn {
+  border-radius: 0;
+  border: 2px solid #00ff00;
+}
+
+[data-theme="8bit"] .theme-btn:hover {
+  box-shadow: 0 0 10px #00ff00, inset 0 0 5px rgba(0, 255, 0, 0.3);
+}
+
+[data-theme="8bit"] .theme-btn.active {
+  background: #003300;
+  box-shadow: 0 0 15px #00ff00;
+}
+
+/* Retro header styling */
+[data-theme="8bit"] header {
+  border-bottom: 4px solid #00ff00;
+  padding-bottom: 12px;
+}
+
+/* Arcade-style status */
+[data-theme="8bit"] #status {
+  animation: none;
+}
+
+[data-theme="8bit"] #status.playing {
+  animation: arcadeBlink 0.5s step-end infinite;
+}
+
+@keyframes arcadeBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* ============================================
+   CYBERPUNK ENHANCED EFFECTS 🌃
+   ============================================ */
+
+/* Neon border animation */
+[data-theme="default"] #editor-container {
+  position: relative;
+}
+
+[data-theme="default"] #editor-container::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, #00ffff, #ff00ff, #00ffff);
+  background-size: 400% 400%;
+  border-radius: calc(var(--border-radius) + 2px);
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  animation: neonBorder 3s ease infinite;
+}
+
+[data-theme="default"] #editor-container:focus-within::before {
+  opacity: 0.5;
+}
+
+@keyframes neonBorder {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* Cyberpunk button hover effects */
+[data-theme="default"] .btn-play:hover {
+  box-shadow: 
+    0 0 20px rgba(0, 255, 255, 0.6),
+    0 0 40px rgba(0, 255, 255, 0.3),
+    inset 0 0 20px rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="default"] .btn-stop:hover {
+  box-shadow: 
+    0 0 20px rgba(255, 0, 255, 0.6),
+    0 0 40px rgba(255, 0, 255, 0.3),
+    inset 0 0 20px rgba(255, 255, 255, 0.1);
 }

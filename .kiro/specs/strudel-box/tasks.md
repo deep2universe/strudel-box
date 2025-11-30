@@ -128,40 +128,70 @@
 ### 4.1 Theme System
 - [x] CSS Variables für alle Themes definieren
 - [x] `data-theme` Attribut auf `<html>` Element
-- [ ] Theme Persistence mit VS Code State
+- [x] Theme Persistence mit VS Code State
 
 ### 4.2 Default Theme (Cyberpunk)
 - [x] Cyan/Magenta Farbpalette
 - [x] Neon Glow Effects (gradient header)
+- [x] Animated neon border on editor focus
+- [x] Pulsing title animation
+- [x] Theme-specific SVG icons
 
 ### 4.3 Halloween Theme
 - [x] Orange/Purple Farbpalette
-- [ ] Spooky Glow Effects
-- [ ] Optional: Particle Effects
+- [x] Spooky Glow Effects (pumpkin pulse, ghost float)
+- [x] Particle Effects (ghosts, bats, sparks, fog)
+- [x] Flickering title animation
+- [x] Fog overlay effect
+- [x] Theme-specific SVG icons (pumpkin play, ghost stop)
 
 ### 4.4 8-Bit Theme
 - [x] Green/Red Retro Farbpalette
-- [ ] CRT Scanline Effect (CSS `::after` mit `repeating-linear-gradient`)
-- [ ] Pixelated Rendering (`image-rendering: pixelated`)
+- [x] CRT Scanline Effect (CSS `::after` mit `repeating-linear-gradient`)
+- [x] Pixelated Rendering (`image-rendering: pixelated`)
+- [x] CRT Vignette effect
+- [x] Screen flicker animation
+- [x] Pixel-style buttons with 3D effect
+- [x] Particle Effects (pixel stars, arcade sparks, retro blocks)
+- [x] Theme-specific pixelated SVG icons
 
 ### 4.5 Theme Switcher
 - [x] "Strudel Box: Set Theme" Command mit QuickPick
-- [ ] Theme Selector UI im Webview (Dropdown oder Buttons)
+- [x] Theme Selector UI im Webview (emoji buttons)
+- [x] Active state indication
+- [x] Hover effects per theme
+
+### 4.6 Particle System
+- [x] `webview-ui/src/particles.ts` erstellt
+- [x] Canvas-basiertes Rendering mit requestAnimationFrame
+- [x] Cyberpunk: Neon lines, digital drops, glitch effects
+- [x] Halloween: Ghosts, bats, sparks, fog particles
+- [x] 8-Bit: Pixel stars, arcade sparks, retro blocks
+- [x] Theme-aware particle spawning
+
+### 4.7 Icon System
+- [x] `webview-ui/src/icons.ts` erstellt
+- [x] Cyberpunk icons (neon gradients, glow filters)
+- [x] Halloween icons (pumpkin, ghost SVGs)
+- [x] 8-Bit icons (pixelated style)
+- [x] Dynamic icon updates on theme change
 
 **Checkpoint Phase 4:**
-- [x] Theme Switcher funktioniert (via Command)
-- [ ] Halloween Theme mit Glow Effects
-- [ ] 8-Bit Theme mit CRT Effect
+- [x] Theme Switcher funktioniert (via Command + UI)
+- [x] Halloween Theme mit Glow Effects + Particles
+- [x] 8-Bit Theme mit CRT Effect + Particles
+- [x] Cyberpunk Theme mit Neon Effects + Particles
+- [x] All themes have unique SVG icons
 
 ---
 
 ## Phase 5: Polish & Release (Ref: Section 7, Phase 5)
 
 ### 5.1 Code Quality
-- [ ] TypeScript Fehler in `webview-ui/src/main.ts` beheben
-  - Fix `stop` declaration modifier conflict
-  - Fix `window` type casting issue
-- [ ] Vite config `emptyDirBeforeWrite` → `emptyOutDir` korrigieren
+- [x] TypeScript Fehler in `webview-ui/src/main.ts` beheben
+  - Fixed `stop` declaration modifier conflict
+  - Fixed `window` type casting issue
+- [x] Vite config `emptyDirBeforeWrite` → `emptyOutDir` korrigiert
 
 ### 5.2 Error Handling
 - [x] Try/Catch für async Operations
@@ -208,19 +238,21 @@
 ```
 webview-ui/
 ├── src/
-│   ├── main.ts         ⚠️ (2 TS errors to fix)
+│   ├── main.ts         ✅ (Theme system integrated)
 │   ├── editor.ts       ✅
-│   ├── visualizer.ts   ❌ TODO
+│   ├── particles.ts    ✅ NEW (Particle effects system)
+│   ├── icons.ts        ✅ NEW (Theme-specific SVG icons)
+│   ├── visualizer.ts   ❌ TODO (Audio visualization)
 │   ├── vscode.ts       ✅
-│   └── styles.css      ✅
-├── index.html          ✅
+│   └── styles.css      ✅ (Complete theme styles)
+├── index.html          ✅ (Theme switcher UI)
 ├── tsconfig.json       ✅
-├── vite.config.ts      ⚠️ (1 error: emptyDirBeforeWrite → emptyOutDir)
-└── dist/               ✅ Built
+├── vite.config.ts      ✅
+└── dist/               ✅ Built (13.11 kB CSS, 513.50 kB JS)
 
 src/
 ├── extension.ts        ✅
-└── StrudelBoxPanel.ts  ✅
+└── StrudelBoxPanel.ts  ✅ (Updated HTML with theme UI)
 ```
 
 ### Keyboard Shortcuts (Ref: Section 2)

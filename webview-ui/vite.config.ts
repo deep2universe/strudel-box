@@ -4,13 +4,13 @@ import { resolve } from 'path';
 export default defineConfig({
   build: {
     outDir: 'dist',
-    emptyDirBeforeWrite: true,
+    emptyOutDir: true,
     rollupOptions: {
       input: resolve(__dirname, 'index.html'),
       output: {
-        entryFileNames: '[name].js',
+        entryFileNames: 'index.js',
         chunkFileNames: '[name].js',
-        assetFileNames: '[name].[ext]'
+        assetFileNames: 'index.[ext]'
       }
     }
   }
