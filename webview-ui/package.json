@@ -1,17 +1,14 @@
 {
   "name": "webview-ui",
   "version": "1.0.0",
-  "main": "index.js",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "vite build --watch",
+    "build": "vite build"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
   "dependencies": {
     "@codemirror/lang-javascript": "^6.2.4",
-    "@strudel/web": "^1.2.6",
+    "@codemirror/state": "^6.5.2",
     "codemirror": "^6.0.2"
   },
   "devDependencies": {

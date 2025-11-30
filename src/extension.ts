@@ -1,26 +1,80 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
+/**
+ * Strudel Box - VS Code Extension
+ * "Code your beats. Visualize your sound. Share your vibe."
+ */
+
 import * as vscode from 'vscode';
+import { StrudelBoxPanel } from './StrudelBoxPanel';
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
+const BUILD_ID = 'BUILD_2024_001'; // Change this to verify reload
+
 export function activate(context: vscode.ExtensionContext) {
+  console.log(`[STRUDEL-BOX] Extension activated - ${BUILD_ID}`);
+  console.log(`[STRUDEL-BOX] Extension URI: ${context.extensionUri.fsPath}`);
 
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "strudel-box" is now active!');
+  // Command: Open Strudel Box
+  const openCommand = vscode.commands.registerCommand('strudel-box.open', () => {
+    console.log(`[STRUDEL-BOX] Opening panel - ${BUILD_ID}`);
+    StrudelBoxPanel.createOrShow(context.extensionUri);
+  });
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	const disposable = vscode.commands.registerCommand('strudel-box.helloWorld', () => {
-		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World from strudel_box!');
-	});
+  // Command: Hush (stop all audio)
+  const hushCommand = vscode.commands.registerCommand('strudel-box.hush', () => {
+    if (StrudelBoxPanel.currentPanel) {
+      StrudelBoxPanel.currentPanel.hush();
+    } else {
+      vscode.window.showInformationMessage('Strudel Box is not open');
+    }
+  });
 
-	context.subscriptions.push(disposable);
+  // Command: Load File
+  const loadFileCommand = vscode.commands.registerCommand('strudel-box.loadFile', async () => {
+    const uri = await vscode.window.showOpenDialog({
+      canSelectMany: false,
+      filters: { 'Strudel': ['strudel'], 'JavaScript': ['js'] },
+      openLabel: 'Load Pattern'
+    });
+
+    if (uri && uri[0]) {
+      const content = await vscode.workspace.fs.readFile(uri[0]);
+      const code = Buffer.from(content).toString('utf-8');
+      
+      // Open panel if not already open
+      StrudelBoxPanel.createOrShow(context.extensionUri);
+      
+      // Wait a bit for panel to initialize, then load code
+      setTimeout(() => {
+        if (StrudelBoxPanel.currentPanel) {
+          StrudelBoxPanel.currentPanel.loadCode(code);
+        }
+      }, 500);
+    }
+  });
+
+  // Command: Set Theme
+  const setThemeCommand = vscode.commands.registerCommand('strudel-box.setTheme', async () => {
+    const theme = await vscode.window.showQuickPick(
+      [
+        { label: 'Default', description: 'Cyberpunk neon (cyan/magenta)', value: 'default' },
+        { label: 'Halloween', description: 'Spooky orange and purple', value: 'halloween' },
+        { label: '8-Bit', description: 'Retro green with CRT effect', value: '8bit' }
+      ],
+      { placeHolder: 'Select a theme' }
+    );
+
+    if (theme && StrudelBoxPanel.currentPanel) {
+      StrudelBoxPanel.currentPanel.setTheme(theme.value);
+    }
+  });
+
+  context.subscriptions.push(
+    openCommand,
+    hushCommand,
+    loadFileCommand,
+    setThemeCommand
+  );
 }
 
-// This method is called when your extension is deactivated
-export function deactivate() {}
+export function deactivate() {
+  // Cleanup handled by panel disposal
+}

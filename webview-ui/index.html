@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Strudel Box</title>
+  <script src="https://unpkg.com/@strudel/web@latest"></script>
+</head>
+<body>
+  <div id="app">
+    <header>
+      <h1>🎵 Strudel Box</h1>
+      <span class="tagline">Code your beats. Visualize your sound. Share your vibe.</span>
+    </header>
+    
+    <main>
+      <div id="editor-container">
+        <div id="editor"></div>
+      </div>
+      
+      <div id="controls">
+        <button id="play" class="btn btn-play">▶ Play</button>
+        <button id="stop" class="btn btn-stop">⏹ Stop</button>
+        <span id="status">Ready</span>
+        <div class="keyboard-hints">
+          <span><kbd>Ctrl</kbd>+<kbd>Enter</kbd> Play</span>
+          <span><kbd>Ctrl</kbd>+<kbd>.</kbd> Stop</span>
+        </div>
+      </div>
+    </main>
+  </div>
+  
+  <script type="module" src="./src/main.ts"></script>
+</body>
+</html>

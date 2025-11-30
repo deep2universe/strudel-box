@@ -4,7 +4,7 @@
   "description": "Code your beats. Visualize your sound. Share your vibe.",
   "version": "0.0.1",
   "engines": {
-    "vscode": "^1.106.0"
+    "vscode": "^1.74.0"
   },
   "categories": [
     "Other"
@@ -14,8 +14,20 @@
   "contributes": {
     "commands": [
       {
-        "command": "strudel-box.helloWorld",
-        "title": "Hello World"
+        "command": "strudel-box.open",
+        "title": "Strudel Box: Open Player"
+      },
+      {
+        "command": "strudel-box.hush",
+        "title": "Strudel Box: Hush (Stop Audio)"
+      },
+      {
+        "command": "strudel-box.loadFile",
+        "title": "Strudel Box: Load File"
+      },
+      {
+        "command": "strudel-box.setTheme",
+        "title": "Strudel Box: Set Theme"
       }
     ]
   },
@@ -34,7 +46,7 @@
     "test": "vscode-test"
   },
   "devDependencies": {
-    "@types/vscode": "^1.106.0",
+    "@types/vscode": "^1.74.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "22.x",
     "@typescript-eslint/eslint-plugin": "^8.39.0",
