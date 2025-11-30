@@ -240,15 +240,15 @@ webview-ui/
 ├── src/
 │   ├── main.ts         ✅ (Theme system integrated)
 │   ├── editor.ts       ✅
-│   ├── particles.ts    ✅ NEW (Particle effects system)
-│   ├── icons.ts        ✅ NEW (Theme-specific SVG icons)
+│   ├── particles.ts    ✅ (Particle effects system)
+│   ├── icons.ts        ✅ (Theme-specific SVG icons)
 │   ├── visualizer.ts   ❌ TODO (Audio visualization)
 │   ├── vscode.ts       ✅
 │   └── styles.css      ✅ (Complete theme styles)
 ├── index.html          ✅ (Theme switcher UI)
 ├── tsconfig.json       ✅
 ├── vite.config.ts      ✅
-└── dist/               ✅ Built (13.11 kB CSS, 513.50 kB JS)
+└── dist/               ✅ Built
 
 src/
 ├── extension.ts        ✅
@@ -267,3 +267,28 @@ src/
 - `evaluate(code)` - Execute pattern
 - `hush()` - Stop all patterns
 - `getAudioContext()` - Get AudioContext for visualizer
+
+---
+
+## Remaining Work Summary
+
+### Phase 3: Visualizations (Not Started)
+The audio visualizer feature is not yet implemented. This includes:
+- Creating `visualizer.ts` with Canvas 2D rendering
+- Connecting to Strudel's AudioContext via AnalyserNode
+- Implementing spectrum analyzer (frequency bars)
+- Implementing waveform display
+- Adding toggle between visualization modes
+- Integrating canvas into the UI
+
+### Phase 5: Polish & Release (Partially Complete)
+- **Done**: Code quality fixes, error handling, basic performance
+- **TODO**: 
+  - Visualizer pause when hidden (depends on Phase 3)
+  - AudioContext cleanup verification
+  - README.md with features, installation, shortcuts, screenshots
+  - CHANGELOG.md update
+  - package.json metadata (publisher, repository, icon, categories, keywords)
+  - .vscodeignore verification
+  - vsce package creation and testing
+  - Screenshots and marketplace preparation
