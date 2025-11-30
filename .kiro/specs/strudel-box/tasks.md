@@ -7,35 +7,35 @@
 ## Phase 1: Audio Foundation (Ref: Section 7, Phase 1)
 
 ### 1.1 Webview Build-Infrastruktur
-- [ ] `webview-ui/tsconfig.json` erstellen (Ref: Section 3)
-- [ ] `webview-ui/vite.config.ts` erstellen (Ref: Section 7, Phase 1)
-- [ ] `webview-ui/package.json` Scripts aktualisieren (`dev`, `build`)
-- [ ] Build-Prozess testen mit `npm run build`
+- [x] `webview-ui/tsconfig.json` erstellen (Ref: Section 3)
+- [x] `webview-ui/vite.config.ts` erstellen (Ref: Section 7, Phase 1)
+- [x] `webview-ui/package.json` Scripts aktualisieren (`dev`, `build`)
+- [x] Build-Prozess testen mit `npm run build`
 
 ### 1.2 VS Code API Wrapper
-- [ ] `webview-ui/src/vscode.ts` erstellen (Ref: Section 7, Phase 1)
+- [x] `webview-ui/src/vscode.ts` erstellen (Ref: Section 7, Phase 1)
   - `acquireVsCodeApi()` Wrapper
   - `postMessage()` Helper
   - `saveState()` / `getState()` für State Persistence
 
 ### 1.3 CodeMirror Editor
-- [ ] `webview-ui/src/editor.ts` erstellen (Ref: Section 5)
+- [x] `webview-ui/src/editor.ts` erstellen (Ref: Section 5)
   - `createEditor()` mit basicSetup und JavaScript Syntax
   - Dark Theme mit CSS Variables
   - Strudel Keymap: `Ctrl+Enter` (evaluate), `Ctrl+.` (hush)
   - `getCode()` und `setCode()` Helper
 
 ### 1.4 Basis HTML & Styling
-- [ ] `webview-ui/index.html` erstellen (Ref: Section 7, Phase 1)
+- [x] `webview-ui/index.html` erstellen (Ref: Section 7, Phase 1)
   - Strudel CDN Script einbinden
   - App Container mit Header, Editor, Controls
-- [ ] `webview-ui/src/styles.css` erstellen (Ref: Section 7, Phase 1)
+- [x] `webview-ui/src/styles.css` erstellen (Ref: Section 7, Phase 1)
   - CSS Variables für Theming
   - Layout: Flexbox, responsive
   - Button Styles
 
 ### 1.5 Strudel Integration
-- [ ] `webview-ui/src/main.ts` erstellen (Ref: Section 4, Section 7)
+- [x] `webview-ui/src/main.ts` erstellen (Ref: Section 4, Section 7)
   - `initStrudel()` bei User-Interaktion (Autoplay Policy)
   - `evaluate(code)` für Pattern-Ausführung
   - `hush()` für Stop
@@ -43,18 +43,18 @@
   - Message Listener für Extension-Kommunikation
 
 **Checkpoint Phase 1:**
-- [ ] CodeMirror Editor erscheint mit Syntax Highlighting
-- [ ] Play Button startet Audio
-- [ ] Stop Button stoppt Audio
-- [ ] `Ctrl+Enter` evaluiert Code
-- [ ] `Ctrl+.` stoppt Audio
+- [x] CodeMirror Editor erscheint mit Syntax Highlighting
+- [x] Play Button startet Audio
+- [x] Stop Button stoppt Audio
+- [x] `Ctrl+Enter` evaluiert Code
+- [x] `Ctrl+.` stoppt Audio
 
 ---
 
 ## Phase 2: Extension-Webview Communication (Ref: Section 7, Phase 2)
 
 ### 2.1 StrudelBoxPanel Klasse
-- [ ] `src/StrudelBoxPanel.ts` erstellen (Ref: Section 6, Section 7)
+- [x] `src/StrudelBoxPanel.ts` erstellen (Ref: Section 6, Section 7)
   - Singleton Pattern mit `createOrShow()`
   - Webview Panel mit `enableScripts` und `retainContextWhenHidden`
   - CSP Header korrekt setzen (Ref: Section 9)
@@ -62,33 +62,33 @@
   - Nonce-Generierung für Script Security
 
 ### 2.2 Extension Commands
-- [ ] `src/extension.ts` aktualisieren
+- [x] `src/extension.ts` aktualisieren
   - `strudel-box.open` - Panel öffnen
   - `strudel-box.hush` - Audio stoppen
   - `strudel-box.loadFile` - .strudel Datei laden
-  - `strudel-box.save` - Pattern speichern
   - `strudel-box.setTheme` - Theme wechseln
-- [ ] `package.json` Commands registrieren (contributes.commands)
+- [x] `package.json` Commands registrieren (contributes.commands)
+- [ ] `strudel-box.save` Command hinzufügen - Pattern speichern
 
 ### 2.3 Message Protocol
-- [ ] Extension → Webview Messages implementieren
+- [x] Extension → Webview Messages implementieren
   - `loadCode` - Code in Editor laden
   - `hush` - Audio stoppen
   - `setTheme` - Theme wechseln
-- [ ] Webview → Extension Messages implementieren
+- [x] Webview → Extension Messages implementieren
   - `ready` - Webview bereit
   - `error` - Fehler melden
   - `saveCode` - Code speichern
 
 ### 2.4 File Operations
-- [ ] `.strudel` File Association in `package.json`
-- [ ] Load File Dialog mit Filter
-- [ ] Save File Dialog mit `.strudel` Extension
+- [ ] `.strudel` File Association in `package.json` (contributes.languages)
+- [x] Load File Dialog mit Filter
+- [x] Save File Dialog mit `.strudel` Extension
 
 **Checkpoint Phase 2:**
-- [ ] "Strudel Box: Hush" Command stoppt Audio
-- [ ] "Strudel Box: Load File" lädt .strudel Dateien
-- [ ] "Strudel Box: Save" speichert Code
+- [x] "Strudel Box: Hush" Command stoppt Audio
+- [x] "Strudel Box: Load File" lädt .strudel Dateien
+- [ ] "Strudel Box: Save" Command funktioniert
 
 ---
 
@@ -126,48 +126,52 @@
 ## Phase 4: Themes (Ref: Section 7, Phase 4)
 
 ### 4.1 Theme System
-- [ ] CSS Variables für alle Themes definieren
-- [ ] `data-theme` Attribut auf `<html>` Element
+- [x] CSS Variables für alle Themes definieren
+- [x] `data-theme` Attribut auf `<html>` Element
 - [ ] Theme Persistence mit VS Code State
 
 ### 4.2 Default Theme (Cyberpunk)
-- [ ] Cyan/Magenta Farbpalette
-- [ ] Neon Glow Effects
+- [x] Cyan/Magenta Farbpalette
+- [x] Neon Glow Effects (gradient header)
 
 ### 4.3 Halloween Theme
-- [ ] Orange/Purple Farbpalette
+- [x] Orange/Purple Farbpalette
 - [ ] Spooky Glow Effects
 - [ ] Optional: Particle Effects
 
 ### 4.4 8-Bit Theme
-- [ ] Green/Red Retro Farbpalette
+- [x] Green/Red Retro Farbpalette
 - [ ] CRT Scanline Effect (CSS `::after` mit `repeating-linear-gradient`)
 - [ ] Pixelated Rendering (`image-rendering: pixelated`)
 
 ### 4.5 Theme Switcher
-- [ ] Theme Selector UI (Dropdown oder Buttons)
-- [ ] "Strudel Box: Set Theme" Command mit QuickPick
+- [x] "Strudel Box: Set Theme" Command mit QuickPick
+- [ ] Theme Selector UI im Webview (Dropdown oder Buttons)
 
 **Checkpoint Phase 4:**
-- [ ] Theme Switcher funktioniert
-- [ ] Halloween Theme mit Orange/Purple Palette
+- [x] Theme Switcher funktioniert (via Command)
+- [ ] Halloween Theme mit Glow Effects
 - [ ] 8-Bit Theme mit CRT Effect
 
 ---
 
 ## Phase 5: Polish & Release (Ref: Section 7, Phase 5)
 
-### 5.1 Error Handling
-- [ ] Try/Catch für alle async Operations
-- [ ] User-friendly Error Messages
-- [ ] Console Logging für Debugging
+### 5.1 Code Quality
+- [ ] TypeScript Fehler in `webview-ui/src/main.ts` beheben
+- [ ] Vite config `emptyDirBeforeWrite` → `emptyOutDir` korrigieren
 
-### 5.2 Performance
-- [ ] Webview `retainContextWhenHidden` nutzen
+### 5.2 Error Handling
+- [x] Try/Catch für async Operations
+- [x] User-friendly Error Messages
+- [x] Console Logging für Debugging
+
+### 5.3 Performance
+- [x] Webview `retainContextWhenHidden` nutzen
 - [ ] Visualizer pausieren wenn nicht sichtbar
 - [ ] Memory Leaks prüfen (AudioContext cleanup)
 
-### 5.3 Documentation
+### 5.4 Documentation
 - [ ] README.md aktualisieren
   - Features
   - Installation
@@ -175,7 +179,7 @@
   - Screenshots
 - [ ] CHANGELOG.md aktualisieren
 
-### 5.4 Packaging
+### 5.5 Packaging
 - [ ] `package.json` Metadata vervollständigen
   - Publisher, Repository, Icon
   - Categories, Keywords
@@ -183,13 +187,13 @@
 - [ ] `vsce package` ausführen
 - [ ] Extension testen mit `.vsix`
 
-### 5.5 Release
+### 5.6 Release
 - [ ] Screenshots erstellen
 - [ ] Marketplace Listing vorbereiten
 - [ ] `vsce publish` (optional)
 
 **Checkpoint Phase 5:**
-- [ ] Vollständiges Error Handling
+- [ ] Keine TypeScript Fehler
 - [ ] Performance optimiert
 - [ ] README.md komplett
 - [ ] `.vsix` Package erstellt
@@ -198,22 +202,23 @@
 
 ## Quick Reference
 
-### Dateien zu erstellen (Ref: Section 3)
+### Dateien Status
 ```
 webview-ui/
 ├── src/
-│   ├── main.ts
-│   ├── editor.ts
-│   ├── visualizer.ts
-│   ├── vscode.ts
-│   └── styles.css
-├── index.html
-├── tsconfig.json
-└── vite.config.ts
+│   ├── main.ts         ✅ (minor TS issues)
+│   ├── editor.ts       ✅
+│   ├── visualizer.ts   ❌ TODO
+│   ├── vscode.ts       ✅
+│   └── styles.css      ✅
+├── index.html          ✅
+├── tsconfig.json       ✅
+├── vite.config.ts      ✅ (minor issue)
+└── dist/               ✅ Built
 
 src/
-├── extension.ts (aktualisieren)
-└── StrudelBoxPanel.ts (neu)
+├── extension.ts        ✅
+└── StrudelBoxPanel.ts  ✅
 ```
 
 ### Keyboard Shortcuts (Ref: Section 2)
