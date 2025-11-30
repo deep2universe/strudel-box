@@ -1,33 +1,51 @@
+---
+inclusion: fileMatch
+fileMatchPattern: ['**/*.ts', '**/*.tsx', '**/*.js', '**/*.json', 'esbuild.js', 'vite.config.ts']
+---
+
 # Tech Stack
 
-## Extension (Host)
-- TypeScript with strict mode
-- VS Code Extension API (^1.74.0)
-- esbuild for bundling (CommonJS output)
-- ESLint with @typescript-eslint
+## Extension Host (Node.js)
+- TypeScript strict mode, ES2022 target, Node16 module resolution
+- VS Code Extension API ^1.74.0
+- esbuild bundler → CommonJS output to `dist/`
+- Entry: `src/extension.ts` → `dist/extension.js`
 
-## Webview UI
-- TypeScript (ES2020 target)
-- Vite for bundling (ESM)
-- CodeMirror 6 for code editing
-- @strudel/web loaded from CDN (unpkg)
-- CSS variables for theming
+## Webview UI (Browser)
+- TypeScript strict mode, ES2020 target, ESNext modules
+- Vite bundler → ESM output to `webview-ui/dist/`
+- CodeMirror 6 for editor (`codemirror`, `@codemirror/lang-javascript`, `@codemirror/state`)
+- `@strudel/web` loaded from unpkg CDN at runtime (not bundled)
+- Entry: `webview-ui/src/main.ts`
+
+## Code Conventions
+- Use strict TypeScript; avoid `any` types
+- Extension code uses CommonJS imports (`require`-style resolution)
+- Webview code uses ESM imports
+- Typed message objects with `type` discriminator for extension↔webview communication
+- CSS variables for theming; no inline styles
 
 ## Build Commands
 ```bash
-# Extension
-npm run compile        # Type check + lint + build
-npm run watch          # Watch mode (esbuild + tsc)
+# Extension (from root)
+npm run compile        # Type check + lint + esbuild
+npm run watch          # Watch mode
 npm run package        # Production build
 npm run lint           # ESLint
-npm run check-types    # TypeScript type checking
-npm run test           # Run tests
+npm run check-types    # TypeScript only
+npm run test           # VS Code extension tests
 
-# Webview UI (run from webview-ui/)
+# Webview (from webview-ui/)
 npm run build          # Production build
 npm run dev            # Watch mode
 ```
 
-## Key Dependencies
-- codemirror, @codemirror/lang-javascript, @codemirror/state
-- @vscode/test-cli, @vscode/test-electron (testing)
+## Testing
+- `@vscode/test-cli` and `@vscode/test-electron` for extension tests
+- Test files in `src/test/`
+- Run `npm run pretest` before `npm run test`
+
+## Key Constraints
+- Webview has CSP restrictions; only unpkg CDN allowed for external scripts
+- Audio context requires user gesture to initialize (browser security)
+- Webview state must be JSON-serializable for panel restore
