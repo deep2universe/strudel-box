@@ -6,15 +6,11 @@
 import * as vscode from 'vscode';
 import { StrudelBoxPanel } from './StrudelBoxPanel';
 
-const BUILD_ID = 'BUILD_2024_001'; // Change this to verify reload
-
 export function activate(context: vscode.ExtensionContext) {
-  console.log(`[STRUDEL-BOX] Extension activated - ${BUILD_ID}`);
-  console.log(`[STRUDEL-BOX] Extension URI: ${context.extensionUri.fsPath}`);
+  console.log('[STRUDEL-BOX] Extension activated');
 
   // Command: Open Strudel Box
   const openCommand = vscode.commands.registerCommand('strudel-box.open', () => {
-    console.log(`[STRUDEL-BOX] Opening panel - ${BUILD_ID}`);
     StrudelBoxPanel.createOrShow(context.extensionUri);
   });
 
@@ -36,18 +32,7 @@ export function activate(context: vscode.ExtensionContext) {
     });
 
     if (uri && uri[0]) {
-      const content = await vscode.workspace.fs.readFile(uri[0]);
-      const code = Buffer.from(content).toString('utf-8');
-      
-      // Open panel if not already open
-      StrudelBoxPanel.createOrShow(context.extensionUri);
-      
-      // Wait a bit for panel to initialize, then load code
-      setTimeout(() => {
-        if (StrudelBoxPanel.currentPanel) {
-          StrudelBoxPanel.currentPanel.loadCode(code);
-        }
-      }, 500);
+      await openFileInStrudelBox(context.extensionUri, uri[0]);
     }
   });
 
@@ -78,31 +63,23 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Command: Open in Strudel Box (from context menu)
   const openInReplCommand = vscode.commands.registerCommand('strudel-box.openInRepl', async (uri?: vscode.Uri) => {
-    // Get URI from context menu or active editor
     const fileUri = uri || vscode.window.activeTextEditor?.document.uri;
-    
     if (!fileUri) {
       vscode.window.showWarningMessage('No file selected');
       return;
     }
-
-    try {
-      const content = await vscode.workspace.fs.readFile(fileUri);
-      const code = Buffer.from(content).toString('utf-8');
-      
-      // Open panel
-      StrudelBoxPanel.createOrShow(context.extensionUri);
-      
-      // Wait for panel to initialize, then load code
-      setTimeout(() => {
-        if (StrudelBoxPanel.currentPanel) {
-          StrudelBoxPanel.currentPanel.loadCode(code);
-        }
-      }, 500);
-    } catch (err) {
-      vscode.window.showErrorMessage(`Failed to open file: ${err}`);
-    }
+    await openFileInStrudelBox(context.extensionUri, fileUri);
   });
+
+  // Custom Editor Provider for .strudel files (double-click to open)
+  const customEditorProvider = vscode.window.registerCustomEditorProvider(
+    'strudel-box.strudelEditor',
+    new StrudelEditorProvider(context.extensionUri),
+    {
+      webviewOptions: { retainContextWhenHidden: true },
+      supportsMultipleEditorsPerDocument: false
+    }
+  );
 
   context.subscriptions.push(
     openCommand,
@@ -110,8 +87,149 @@ export function activate(context: vscode.ExtensionContext) {
     loadFileCommand,
     setThemeCommand,
     saveCommand,
-    openInReplCommand
+    openInReplCommand,
+    customEditorProvider
   );
+}
+
+async function openFileInStrudelBox(extensionUri: vscode.Uri, fileUri: vscode.Uri): Promise<void> {
+  try {
+    const content = await vscode.workspace.fs.readFile(fileUri);
+    const code = Buffer.from(content).toString('utf-8');
+    
+    StrudelBoxPanel.createOrShow(extensionUri);
+    
+    setTimeout(() => {
+      if (StrudelBoxPanel.currentPanel) {
+        StrudelBoxPanel.currentPanel.loadCode(code);
+      }
+    }, 500);
+  } catch (err) {
+    vscode.window.showErrorMessage(`Failed to open file: ${err}`);
+  }
+}
+
+/**
+ * Custom Editor Provider for .strudel files
+ * Opens files directly in Strudel Box REPL when double-clicked
+ */
+class StrudelEditorProvider implements vscode.CustomTextEditorProvider {
+  constructor(private readonly extensionUri: vscode.Uri) {}
+
+  async resolveCustomTextEditor(
+    document: vscode.TextDocument,
+    webviewPanel: vscode.WebviewPanel,
+    _token: vscode.CancellationToken
+  ): Promise<void> {
+    // Configure webview
+    webviewPanel.webview.options = {
+      enableScripts: true,
+      localResourceRoots: [vscode.Uri.joinPath(this.extensionUri, 'webview-ui', 'dist')]
+    };
+
+    // Set HTML content
+    webviewPanel.webview.html = this.getHtmlForWebview(webviewPanel.webview, document.getText());
+
+    // Handle messages from webview
+    webviewPanel.webview.onDidReceiveMessage(async (message) => {
+      switch (message.command) {
+        case 'ready':
+          // Send initial code
+          webviewPanel.webview.postMessage({ command: 'loadCode', payload: document.getText() });
+          break;
+        case 'saveCode':
+          const edit = new vscode.WorkspaceEdit();
+          edit.replace(
+            document.uri,
+            new vscode.Range(0, 0, document.lineCount, 0),
+            message.payload
+          );
+          await vscode.workspace.applyEdit(edit);
+          break;
+        case 'error':
+          vscode.window.showErrorMessage(`Strudel Box: ${message.payload}`);
+          break;
+      }
+    });
+
+    // Update webview when document changes
+    const changeDocumentSubscription = vscode.workspace.onDidChangeTextDocument((e) => {
+      if (e.document.uri.toString() === document.uri.toString()) {
+        webviewPanel.webview.postMessage({ command: 'loadCode', payload: document.getText() });
+      }
+    });
+
+    webviewPanel.onDidDispose(() => {
+      changeDocumentSubscription.dispose();
+    });
+  }
+
+  private getHtmlForWebview(webview: vscode.Webview, initialCode: string): string {
+    const distUri = vscode.Uri.joinPath(this.extensionUri, 'webview-ui', 'dist');
+    const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(distUri, 'index.js'));
+    const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(distUri, 'index.css'));
+
+    // Escape code for safe embedding
+    const escapedCode = initialCode.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'none';
+    script-src 'unsafe-eval' 'unsafe-inline' 'wasm-unsafe-eval' data: blob: https://unpkg.com https://cdn.jsdelivr.net https://*.strudel.cc https://raw.githubusercontent.com ${webview.cspSource};
+    style-src 'unsafe-inline' ${webview.cspSource};
+    font-src ${webview.cspSource} https: data:;
+    img-src ${webview.cspSource} https: data: blob:;
+    connect-src https: wss: data: blob:;
+    media-src https: blob: data:;
+    worker-src blob: data: https://unpkg.com https://cdn.jsdelivr.net;
+  ">
+  <title>Strudel Box</title>
+  <script src="https://unpkg.com/@strudel/web@latest"></script>
+  <link rel="stylesheet" href="${styleUri}">
+  <script>window.INITIAL_CODE = ${JSON.stringify(initialCode)};</script>
+</head>
+<body>
+  <canvas id="particles-canvas"></canvas>
+  
+  <div id="app">
+    <header>
+      <div class="header-left">
+        <h1>🎵 Strudel Box</h1>
+        <span class="tagline">Code your beats. Visualize your sound. Share your vibe.</span>
+      </div>
+      <div class="theme-switcher">
+        <button class="theme-btn active" data-theme="default" title="Cyberpunk">🌃</button>
+        <button class="theme-btn" data-theme="halloween" title="Halloween">🎃</button>
+        <button class="theme-btn" data-theme="8bit" title="8-Bit">👾</button>
+      </div>
+    </header>
+    
+    <main>
+      <div id="editor-container">
+        <div id="editor"></div>
+      </div>
+      
+      <div id="controls">
+        <button id="play" class="btn btn-play">▶ Play</button>
+        <button id="stop" class="btn btn-stop">⏹ Stop</button>
+        <button id="save" class="btn btn-save">💾 Save</button>
+        <span id="status">Ready</span>
+        <div class="keyboard-hints">
+          <span><kbd>Ctrl</kbd>+<kbd>Enter</kbd> Play</span>
+          <span><kbd>Ctrl</kbd>+<kbd>.</kbd> Stop</span>
+        </div>
+      </div>
+    </main>
+  </div>
+  
+  <script type="module" src="${scriptUri}"></script>
+</body>
+</html>`;
+  }
 }
 
 export function deactivate() {

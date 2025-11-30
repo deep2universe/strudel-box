@@ -85,6 +85,18 @@
         "scopeName": "source.strudel",
         "path": "./syntaxes/strudel.tmLanguage.json"
       }
+    ],
+    "customEditors": [
+      {
+        "viewType": "strudel-box.strudelEditor",
+        "displayName": "Strudel Box REPL",
+        "selector": [
+          {
+            "filenamePattern": "*.strudel"
+          }
+        ],
+        "priority": "default"
+      }
     ]
   },
   "scripts": {
