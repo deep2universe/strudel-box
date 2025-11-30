@@ -1,12 +1,12 @@
 # Strudel Box - Implementation Tasks
 
-> Referenz: `Strudel-Box-Implementation-Specification-v5-Final.md`
+> Reference: `Strudel-Box-Implementation-Specification-v5-Final.md`
 
 ---
 
 ## Phase 1: Audio Foundation (Ref: Section 7, Phase 1)
 
-### 1.1 Webview Build-Infrastruktur
+### 1.1 Webview Build Infrastructure
 - [x] `webview-ui/tsconfig.json` erstellen (Ref: Section 3)
 - [x] `webview-ui/vite.config.ts` erstellen (Ref: Section 7, Phase 1)
 - [x] `webview-ui/package.json` Scripts aktualisieren (`dev`, `build`)
@@ -159,6 +159,8 @@
 
 ### 5.1 Code Quality
 - [ ] TypeScript Fehler in `webview-ui/src/main.ts` beheben
+  - Fix `stop` declaration modifier conflict
+  - Fix `window` type casting issue
 - [ ] Vite config `emptyDirBeforeWrite` → `emptyOutDir` korrigieren
 
 ### 5.2 Error Handling
@@ -206,14 +208,14 @@
 ```
 webview-ui/
 ├── src/
-│   ├── main.ts         ✅ (minor TS issues)
+│   ├── main.ts         ⚠️ (2 TS errors to fix)
 │   ├── editor.ts       ✅
 │   ├── visualizer.ts   ❌ TODO
 │   ├── vscode.ts       ✅
 │   └── styles.css      ✅
 ├── index.html          ✅
 ├── tsconfig.json       ✅
-├── vite.config.ts      ✅ (minor issue)
+├── vite.config.ts      ⚠️ (1 error: emptyDirBeforeWrite → emptyOutDir)
 └── dist/               ✅ Built
 
 src/
