@@ -36,6 +36,34 @@
       {
         "command": "strudel-box.openInRepl",
         "title": "Open in Strudel Box"
+      },
+      {
+        "command": "strudel-box.focusExplorer",
+        "title": "Strudel Box: Open File Explorer"
+      }
+    ],
+    "views": {
+      "explorer": [
+        {
+          "type": "webview",
+          "id": "strudel-box.explorer",
+          "name": "Strudel Player",
+          "icon": "$(music)",
+          "contextualTitle": "Strudel Player"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "strudel-box.explorer",
+        "contents": "No .strudel files found in workspace.\n[Create a Pattern](command:strudel-box.open)"
+      }
+    ],
+    "iconThemes": [
+      {
+        "id": "strudel-icons",
+        "label": "Strudel Icons",
+        "path": "./icons/strudel-icon-theme.json"
       }
     ],
     "menus": {

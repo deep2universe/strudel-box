@@ -5,13 +5,26 @@
 
 import * as vscode from 'vscode';
 import { StrudelBoxPanel } from './StrudelBoxPanel';
+import { StrudelExplorerProvider } from './StrudelExplorerProvider';
 
 export function activate(context: vscode.ExtensionContext) {
   console.log('[STRUDEL-BOX] Extension activated');
 
+  // Register Strudel Explorer (Sidebar File Browser & Player)
+  const explorerProvider = new StrudelExplorerProvider(context.extensionUri);
+  const explorerView = vscode.window.registerWebviewViewProvider(
+    StrudelExplorerProvider.viewType,
+    explorerProvider
+  );
+
   // Command: Open Strudel Box
   const openCommand = vscode.commands.registerCommand('strudel-box.open', () => {
     StrudelBoxPanel.createOrShow(context.extensionUri);
+  });
+
+  // Command: Focus Strudel Explorer
+  const focusExplorerCommand = vscode.commands.registerCommand('strudel-box.focusExplorer', () => {
+    vscode.commands.executeCommand('strudel-box.explorer.focus');
   });
 
   // Command: Hush (stop all audio)
@@ -82,7 +95,9 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
+    explorerView,
     openCommand,
+    focusExplorerCommand,
     hushCommand,
     loadFileCommand,
     setThemeCommand,

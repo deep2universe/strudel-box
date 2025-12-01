@@ -1,0 +1,726 @@
+/**
+ * Strudel Explorer - File Browser & Music Player
+ * WebviewViewProvider for sidebar integration
+ */
+
+import * as vscode from 'vscode';
+import { StrudelBoxPanel } from './StrudelBoxPanel';
+
+interface StrudelFile {
+  name: string;
+  uri: vscode.Uri;
+  relativePath: string;
+}
+
+interface ExplorerState {
+  currentTrack: string | null;
+  isPlaying: boolean;
+  shuffleMode: boolean;
+  theme: 'halloween' | '8bit' | 'tech';
+  playlist: string[];
+  playlistIndex: number;
+}
+
+export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
+  public static readonly viewType = 'strudel-box.explorer';
+  
+  private _view?: vscode.WebviewView;
+  private _extensionUri: vscode.Uri;
+  private _files: StrudelFile[] = [];
+  private _state: ExplorerState = {
+    currentTrack: null,
+    isPlaying: false,
+    shuffleMode: false,
+    theme: 'tech',
+    playlist: [],
+    playlistIndex: -1
+  };
+  private _fileWatcher?: vscode.FileSystemWatcher;
+
+  constructor(extensionUri: vscode.Uri) {
+    this._extensionUri = extensionUri;
+    this._setupFileWatcher();
+  }
+
+  public resolveWebviewView(
+    webviewView: vscode.WebviewView,
+    _context: vscode.WebviewViewResolveContext,
+    _token: vscode.CancellationToken
+  ): void {
+    this._view = webviewView;
+
+    webviewView.webview.options = {
+      enableScripts: true,
+      localResourceRoots: [this._extensionUri]
+    };
+
+    webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
+
+    webviewView.webview.onDidReceiveMessage(async (message) => {
+      await this._handleMessage(message);
+    });
+
+    // Initial file scan
+    this._scanFiles();
+  }
+
+  private _setupFileWatcher(): void {
+    this._fileWatcher = vscode.workspace.createFileSystemWatcher('**/*.strudel');
+    
+    this._fileWatcher.onDidCreate(() => this._scanFiles());
+    this._fileWatcher.onDidDelete(() => this._scanFiles());
+    this._fileWatcher.onDidChange(() => this._scanFiles());
+  }
+
+  private async _scanFiles(): Promise<void> {
+    const files = await vscode.workspace.findFiles('**/*.strudel', '**/node_modules/**');
+    
+    this._files = files.map(uri => ({
+      name: uri.path.split('/').pop() || '',
+      uri,
+      relativePath: vscode.workspace.asRelativePath(uri)
+    })).sort((a, b) => a.name.localeCompare(b.name));
+
+    this._state.playlist = this._files.map(f => f.relativePath);
+    this._sendMessage('updateFiles', this._files.map(f => ({
+      name: f.name,
+      path: f.relativePath
+    })));
+  }
+
+  private async _handleMessage(message: { command: string; payload?: unknown }): Promise<void> {
+    switch (message.command) {
+      case 'ready':
+        await this._scanFiles();
+        this._sendMessage('updateState', this._state);
+        break;
+
+      case 'play':
+        await this._playFile(message.payload as string);
+        break;
+
+      case 'stop':
+        this._stopPlayback();
+        break;
+
+      case 'next':
+        await this._playNext();
+        break;
+
+      case 'previous':
+        await this._playPrevious();
+        break;
+
+      case 'toggleShuffle':
+        this._state.shuffleMode = !this._state.shuffleMode;
+        this._sendMessage('updateState', this._state);
+        break;
+
+      case 'setTheme':
+        this._state.theme = message.payload as 'halloween' | '8bit' | 'tech';
+        this._sendMessage('updateState', this._state);
+        break;
+
+      case 'openInStrudelCC':
+        await this._openInStrudelCC(message.payload as string);
+        break;
+
+      case 'openInEditor':
+        await this._openInEditor(message.payload as string);
+        break;
+
+      case 'refresh':
+        await this._scanFiles();
+        break;
+    }
+  }
+
+  private async _playFile(relativePath: string): Promise<void> {
+    const file = this._files.find(f => f.relativePath === relativePath);
+    if (!file) {return;}
+
+    try {
+      const content = await vscode.workspace.fs.readFile(file.uri);
+      const code = Buffer.from(content).toString('utf-8');
+
+      // Ensure StrudelBoxPanel is open
+      StrudelBoxPanel.createOrShow(this._extensionUri);
+
+      // Wait for panel to be ready, then load and play
+      setTimeout(() => {
+        if (StrudelBoxPanel.currentPanel) {
+          StrudelBoxPanel.currentPanel.loadCode(code);
+          // Send play command after code is loaded
+          setTimeout(() => {
+            StrudelBoxPanel.currentPanel?.sendMessage('evaluate');
+          }, 300);
+        }
+      }, 500);
+
+      this._state.currentTrack = relativePath;
+      this._state.isPlaying = true;
+      this._state.playlistIndex = this._state.playlist.indexOf(relativePath);
+      this._sendMessage('updateState', this._state);
+
+    } catch (err) {
+      vscode.window.showErrorMessage(`Failed to play: ${err}`);
+    }
+  }
+
+  private _stopPlayback(): void {
+    if (StrudelBoxPanel.currentPanel) {
+      StrudelBoxPanel.currentPanel.hush();
+    }
+    this._state.isPlaying = false;
+    this._sendMessage('updateState', this._state);
+  }
+
+  private async _playNext(): Promise<void> {
+    if (this._state.playlist.length === 0) {return;}
+
+    let nextIndex: number;
+    if (this._state.shuffleMode) {
+      nextIndex = Math.floor(Math.random() * this._state.playlist.length);
+    } else {
+      nextIndex = (this._state.playlistIndex + 1) % this._state.playlist.length;
+    }
+
+    await this._playFile(this._state.playlist[nextIndex]);
+  }
+
+  private async _playPrevious(): Promise<void> {
+    if (this._state.playlist.length === 0) {return;}
+
+    let prevIndex: number;
+    if (this._state.shuffleMode) {
+      prevIndex = Math.floor(Math.random() * this._state.playlist.length);
+    } else {
+      prevIndex = this._state.playlistIndex - 1;
+      if (prevIndex < 0) {prevIndex = this._state.playlist.length - 1;}
+    }
+
+    await this._playFile(this._state.playlist[prevIndex]);
+  }
+
+  private async _openInStrudelCC(relativePath: string): Promise<void> {
+    const file = this._files.find(f => f.relativePath === relativePath);
+    if (!file) {return;}
+
+    try {
+      const content = await vscode.workspace.fs.readFile(file.uri);
+      const code = Buffer.from(content).toString('utf-8');
+      const base64Code = Buffer.from(code).toString('base64');
+      const url = `https://strudel.cc/#${base64Code}`;
+
+      const opened = await vscode.env.openExternal(vscode.Uri.parse(url));
+      
+      if (!opened) {
+        // Fallback: copy to clipboard
+        await vscode.env.clipboard.writeText(url);
+        vscode.window.showInformationMessage('Link copied to clipboard!');
+      }
+    } catch (err) {
+      vscode.window.showErrorMessage(`Failed to open in Strudel.cc: ${err}`);
+    }
+  }
+
+  private async _openInEditor(relativePath: string): Promise<void> {
+    const file = this._files.find(f => f.relativePath === relativePath);
+    if (!file) {return;}
+
+    await vscode.commands.executeCommand('strudel-box.openInRepl', file.uri);
+  }
+
+  private _sendMessage(command: string, payload?: unknown): void {
+    if (this._view) {
+      this._view.webview.postMessage({ command, payload });
+    }
+  }
+
+  private _getHtmlForWebview(webview: vscode.Webview): string {
+    const nonce = this._getNonce();
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'none';
+    style-src 'unsafe-inline' ${webview.cspSource};
+    script-src 'nonce-${nonce}';
+    font-src ${webview.cspSource};
+  ">
+  <title>Strudel Explorer</title>
+  <style>
+    ${this._getStyles()}
+  </style>
+</head>
+<body data-theme="tech">
+  <div class="explorer">
+    <div class="header">
+      <h2>🎵 Strudel Player</h2>
+      <div class="theme-buttons">
+        <button class="theme-btn" data-theme="tech" title="Tech">⚡</button>
+        <button class="theme-btn" data-theme="halloween" title="Halloween">🎃</button>
+        <button class="theme-btn" data-theme="8bit" title="8-Bit">👾</button>
+      </div>
+    </div>
+
+    <div class="now-playing">
+      <div class="now-playing-label">Now Playing</div>
+      <div class="now-playing-track" id="currentTrack">—</div>
+      <div class="player-controls">
+        <button id="prevBtn" class="ctrl-btn" title="Previous">⏮</button>
+        <button id="playPauseBtn" class="ctrl-btn play-btn" title="Play/Stop">▶</button>
+        <button id="nextBtn" class="ctrl-btn" title="Next">⏭</button>
+        <button id="shuffleBtn" class="ctrl-btn" title="Shuffle">🔀</button>
+      </div>
+    </div>
+
+    <div class="file-list-header">
+      <span>Files</span>
+      <button id="refreshBtn" class="icon-btn" title="Refresh">🔄</button>
+    </div>
+
+    <div class="file-list" id="fileList">
+      <div class="empty-state">No .strudel files found</div>
+    </div>
+  </div>
+
+  <script nonce="${nonce}">
+    ${this._getScript()}
+  </script>
+</body>
+</html>`;
+  }
+
+  private _getStyles(): string {
+    return `
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: var(--vscode-font-family);
+        font-size: var(--vscode-font-size);
+        color: var(--vscode-foreground);
+        background: var(--vscode-sideBar-background);
+        height: 100vh;
+        overflow: hidden;
+      }
+
+      /* Theme Variables */
+      body[data-theme="tech"] {
+        --accent: #00d4ff;
+        --accent-dim: #00d4ff40;
+        --accent-glow: 0 0 10px #00d4ff80;
+        --playing-bg: linear-gradient(135deg, #0a1628 0%, #1a2a4a 100%);
+        --file-hover: #00d4ff15;
+        --icon-color: #00d4ff;
+      }
+
+      body[data-theme="halloween"] {
+        --accent: #ff6b00;
+        --accent-dim: #ff6b0040;
+        --accent-glow: 0 0 10px #ff6b0080;
+        --playing-bg: linear-gradient(135deg, #1a0a00 0%, #2d1810 100%);
+        --file-hover: #ff6b0015;
+        --icon-color: #ff6b00;
+      }
+
+      body[data-theme="8bit"] {
+        --accent: #00ff41;
+        --accent-dim: #00ff4140;
+        --accent-glow: 0 0 10px #00ff4180;
+        --playing-bg: linear-gradient(135deg, #001a00 0%, #0a2a0a 100%);
+        --file-hover: #00ff4115;
+        --icon-color: #00ff41;
+      }
+
+      .explorer {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        padding: 8px;
+      }
+
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--vscode-panel-border);
+      }
+
+      .header h2 {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--accent);
+        text-shadow: var(--accent-glow);
+      }
+
+      .theme-buttons {
+        display: flex;
+        gap: 4px;
+      }
+
+      .theme-btn {
+        background: transparent;
+        border: 1px solid var(--vscode-panel-border);
+        border-radius: 4px;
+        padding: 2px 6px;
+        cursor: pointer;
+        font-size: 12px;
+        transition: all 0.2s;
+      }
+
+      .theme-btn:hover, .theme-btn.active {
+        border-color: var(--accent);
+        box-shadow: var(--accent-glow);
+      }
+
+      .now-playing {
+        background: var(--playing-bg);
+        border: 1px solid var(--accent-dim);
+        border-radius: 8px;
+        padding: 12px;
+        margin: 12px 0;
+        text-align: center;
+      }
+
+      .now-playing-label {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: var(--accent);
+        opacity: 0.8;
+      }
+
+      .now-playing-track {
+        font-size: 14px;
+        font-weight: 600;
+        margin: 8px 0;
+        color: var(--vscode-foreground);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .player-controls {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        margin-top: 8px;
+      }
+
+      .ctrl-btn {
+        background: var(--vscode-button-secondaryBackground);
+        border: 1px solid var(--vscode-panel-border);
+        border-radius: 50%;
+        width: 32px;
+        height: 32px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .ctrl-btn:hover {
+        border-color: var(--accent);
+        box-shadow: var(--accent-glow);
+      }
+
+      .ctrl-btn.play-btn {
+        width: 40px;
+        height: 40px;
+        font-size: 16px;
+        background: var(--accent-dim);
+        border-color: var(--accent);
+      }
+
+      .ctrl-btn.active {
+        background: var(--accent);
+        color: #000;
+      }
+
+      .file-list-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--vscode-descriptionForeground);
+      }
+
+      .icon-btn {
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        font-size: 12px;
+        opacity: 0.7;
+        transition: opacity 0.2s;
+      }
+
+      .icon-btn:hover {
+        opacity: 1;
+      }
+
+      .file-list {
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: hidden;
+      }
+
+      .file-item {
+        display: flex;
+        align-items: center;
+        padding: 6px 8px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background 0.15s;
+        gap: 8px;
+      }
+
+      .file-item:hover {
+        background: var(--file-hover);
+      }
+
+      .file-item.playing {
+        background: var(--accent-dim);
+        border-left: 2px solid var(--accent);
+      }
+
+      .file-icon {
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        font-weight: bold;
+        border: 1.5px solid var(--icon-color);
+        border-radius: 3px;
+        color: var(--icon-color);
+        flex-shrink: 0;
+      }
+
+      .file-name {
+        flex: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-size: 12px;
+      }
+
+      .file-actions {
+        display: flex;
+        gap: 4px;
+        opacity: 0;
+        transition: opacity 0.15s;
+      }
+
+      .file-item:hover .file-actions {
+        opacity: 1;
+      }
+
+      .file-action-btn {
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        font-size: 12px;
+        padding: 2px 4px;
+        border-radius: 3px;
+        transition: background 0.15s;
+      }
+
+      .file-action-btn:hover {
+        background: var(--accent-dim);
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 20px;
+        color: var(--vscode-descriptionForeground);
+        font-style: italic;
+      }
+
+      .playing-indicator {
+        width: 8px;
+        height: 8px;
+        background: var(--accent);
+        border-radius: 50%;
+        animation: pulse 1s infinite;
+      }
+
+      @keyframes pulse {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.5; transform: scale(0.8); }
+      }
+    `;
+  }
+
+  private _getScript(): string {
+    return `
+      const vscode = acquireVsCodeApi();
+      
+      let state = {
+        currentTrack: null,
+        isPlaying: false,
+        shuffleMode: false,
+        theme: 'tech',
+        playlist: [],
+        playlistIndex: -1
+      };
+      
+      let files = [];
+
+      // Elements
+      const fileList = document.getElementById('fileList');
+      const currentTrackEl = document.getElementById('currentTrack');
+      const playPauseBtn = document.getElementById('playPauseBtn');
+      const shuffleBtn = document.getElementById('shuffleBtn');
+      const prevBtn = document.getElementById('prevBtn');
+      const nextBtn = document.getElementById('nextBtn');
+      const refreshBtn = document.getElementById('refreshBtn');
+      const themeButtons = document.querySelectorAll('.theme-btn');
+
+      // Event Listeners
+      playPauseBtn.addEventListener('click', () => {
+        if (state.isPlaying) {
+          vscode.postMessage({ command: 'stop' });
+        } else if (state.currentTrack) {
+          vscode.postMessage({ command: 'play', payload: state.currentTrack });
+        } else if (files.length > 0) {
+          vscode.postMessage({ command: 'play', payload: files[0].path });
+        }
+      });
+
+      prevBtn.addEventListener('click', () => {
+        vscode.postMessage({ command: 'previous' });
+      });
+
+      nextBtn.addEventListener('click', () => {
+        vscode.postMessage({ command: 'next' });
+      });
+
+      shuffleBtn.addEventListener('click', () => {
+        vscode.postMessage({ command: 'toggleShuffle' });
+      });
+
+      refreshBtn.addEventListener('click', () => {
+        vscode.postMessage({ command: 'refresh' });
+      });
+
+      themeButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          vscode.postMessage({ command: 'setTheme', payload: btn.dataset.theme });
+        });
+      });
+
+      // Message Handler
+      window.addEventListener('message', event => {
+        const message = event.data;
+        
+        switch (message.command) {
+          case 'updateFiles':
+            files = message.payload;
+            renderFileList();
+            break;
+          case 'updateState':
+            state = { ...state, ...message.payload };
+            updateUI();
+            break;
+        }
+      });
+
+      function renderFileList() {
+        if (files.length === 0) {
+          fileList.innerHTML = '<div class="empty-state">No .strudel files found</div>';
+          return;
+        }
+
+        fileList.innerHTML = files.map(file => \`
+          <div class="file-item \${state.currentTrack === file.path ? 'playing' : ''}" data-path="\${file.path}">
+            \${state.currentTrack === file.path && state.isPlaying ? '<div class="playing-indicator"></div>' : '<div class="file-icon">S</div>'}
+            <span class="file-name" title="\${file.path}">\${file.name}</span>
+            <div class="file-actions">
+              <button class="file-action-btn play-file-btn" title="Play">▶</button>
+              <button class="file-action-btn link-btn" title="Open in Strudel.cc">🔗</button>
+              <button class="file-action-btn edit-btn" title="Open in Editor">📝</button>
+            </div>
+          </div>
+        \`).join('');
+
+        // Add click handlers
+        fileList.querySelectorAll('.file-item').forEach(item => {
+          const path = item.dataset.path;
+          
+          item.querySelector('.play-file-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            vscode.postMessage({ command: 'play', payload: path });
+          });
+
+          item.querySelector('.link-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            vscode.postMessage({ command: 'openInStrudelCC', payload: path });
+          });
+
+          item.querySelector('.edit-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            vscode.postMessage({ command: 'openInEditor', payload: path });
+          });
+
+          item.addEventListener('dblclick', () => {
+            vscode.postMessage({ command: 'play', payload: path });
+          });
+        });
+      }
+
+      function updateUI() {
+        // Update theme
+        document.body.dataset.theme = state.theme;
+        themeButtons.forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.theme === state.theme);
+        });
+
+        // Update now playing
+        currentTrackEl.textContent = state.currentTrack 
+          ? state.currentTrack.split('/').pop() 
+          : '—';
+
+        // Update play/pause button
+        playPauseBtn.textContent = state.isPlaying ? '⏹' : '▶';
+        playPauseBtn.title = state.isPlaying ? 'Stop' : 'Play';
+
+        // Update shuffle button
+        shuffleBtn.classList.toggle('active', state.shuffleMode);
+
+        // Re-render file list to update playing state
+        renderFileList();
+      }
+
+      // Initialize
+      vscode.postMessage({ command: 'ready' });
+    `;
+  }
+
+  private _getNonce(): string {
+    let text = '';
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    for (let i = 0; i < 32; i++) {
+      text += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return text;
+  }
+
+  public dispose(): void {
+    this._fileWatcher?.dispose();
+  }
+}

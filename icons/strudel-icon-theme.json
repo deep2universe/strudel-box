@@ -1,0 +1,10 @@
+{
+  "iconDefinitions": {
+    "strudel": {
+      "iconPath": "./strudel-file.svg"
+    }
+  },
+  "fileExtensions": {
+    "strudel": "strudel"
+  }
+}
