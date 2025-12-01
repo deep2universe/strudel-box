@@ -197,6 +197,8 @@ class StrudelEditorProvider implements vscode.CustomTextEditorProvider {
             message.payload
           );
           await vscode.workspace.applyEdit(edit);
+          // Actually save the document to disk
+          await document.save();
           break;
         case 'error':
           vscode.window.showErrorMessage(`Strudel Box: ${message.payload}`);

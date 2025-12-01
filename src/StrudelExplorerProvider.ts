@@ -163,6 +163,8 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
   }
 
   private async _handleMessage(message: { command: string; payload?: unknown }): Promise<void> {
+    console.log('[STRUDEL-EXPLORER] Received message:', message.command, message.payload);
+    
     switch (message.command) {
       case 'ready':
         await this._scanFiles();
@@ -170,6 +172,7 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
         break;
 
       case 'play':
+        console.log('[STRUDEL-EXPLORER] Play requested for:', message.payload);
         await this._playFile(message.payload as string);
         break;
 
@@ -224,23 +227,37 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
   }
 
   private async _playFile(relativePath: string): Promise<void> {
+    console.log('[STRUDEL-EXPLORER] _playFile called with:', relativePath);
+    
     // Normalize path separators for comparison
     const normalizedPath = relativePath.replace(/\\/g, '/');
+    console.log('[STRUDEL-EXPLORER] Normalized path:', normalizedPath);
+    console.log('[STRUDEL-EXPLORER] Available files:', this._files.map(f => ({
+      original: f.relativePath,
+      normalized: f.relativePath.replace(/\\/g, '/')
+    })));
+    
     const file = this._files.find(f => f.relativePath.replace(/\\/g, '/') === normalizedPath);
     
     if (!file) { 
-      console.error('[STRUDEL] File not found:', relativePath);
-      console.error('[STRUDEL] Available files:', this._files.map(f => f.relativePath));
+      console.error('[STRUDEL-EXPLORER] File not found:', relativePath);
+      vscode.window.showErrorMessage(`File not found: ${relativePath}`);
       return; 
     }
+    
+    console.log('[STRUDEL-EXPLORER] Found file:', file.uri.toString());
 
     try {
       // Read the file content fresh from disk
       const content = await vscode.workspace.fs.readFile(file.uri);
       const code = Buffer.from(content).toString('utf-8');
+      
+      console.log('[STRUDEL-EXPLORER] Read code length:', code.length);
+      console.log('[STRUDEL-EXPLORER] Code preview:', code.substring(0, 100));
 
       // Send code to the player webview to play
       this._sendMessage('playCode', code, relativePath);
+      console.log('[STRUDEL-EXPLORER] Sent playCode message');
 
       this._state.currentTrack = relativePath;
       this._state.isPlaying = true;
@@ -902,6 +919,12 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
             break;
           case 'playCode':
             // Stop current playback first, then play new code
+            console.log('[WEBVIEW] Received playCode message');
+            console.log('[WEBVIEW] Track:', message.track);
+            console.log('[WEBVIEW] Payload type:', typeof message.payload);
+            console.log('[WEBVIEW] Payload length:', message.payload ? message.payload.length : 'null/undefined');
+            console.log('[WEBVIEW] Payload preview:', message.payload ? message.payload.substring(0, 100) : 'empty');
+            
             stopPlayback();
             state.currentTrack = message.track;
             state.playlistIndex = state.playlist.indexOf(message.track);
@@ -918,6 +941,10 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
       let expandedFolders = new Set();
       
       function renderFileList() {
+        console.log('[WEBVIEW] renderFileList called');
+        console.log('[WEBVIEW] fileTree:', JSON.stringify(fileTree, null, 2));
+        console.log('[WEBVIEW] flatPlaylist:', flatPlaylist);
+        
         if (!fileTree || fileTree.length === 0) {
           fileList.innerHTML = '<div class="empty-state">No .strudel files found</div>';
           return;
@@ -960,51 +987,84 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
         }).join('');
       }
       
-      function attachTreeEventHandlers() {
-        // Folder toggle handlers
-        fileList.querySelectorAll('.folder-header').forEach(header => {
-          header.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const folderPath = header.dataset.folder;
-            const children = fileList.querySelector('[data-folder-children="' + folderPath + '"]');
-            
-            if (expandedFolders.has(folderPath)) {
-              expandedFolders.delete(folderPath);
-              header.classList.remove('expanded');
-              children.classList.remove('expanded');
-              header.querySelector('.folder-icon').textContent = '📁';
-            } else {
-              expandedFolders.add(folderPath);
-              header.classList.add('expanded');
-              children.classList.add('expanded');
-              header.querySelector('.folder-icon').textContent = '📂';
-            }
-          });
-        });
+      // Use event delegation for all clicks - more reliable for dynamic content
+      fileList.addEventListener('click', (e) => {
+        const target = e.target;
         
-        // File handlers
-        fileList.querySelectorAll('.file-item').forEach(item => {
-          const path = item.dataset.path;
+        // Handle folder header clicks
+        const folderHeader = target.closest('.folder-header');
+        if (folderHeader) {
+          e.stopPropagation();
+          const folderPath = folderHeader.dataset.folder;
+          const children = fileList.querySelector('[data-folder-children="' + folderPath + '"]');
           
-          item.querySelector('.play-file-btn').addEventListener('click', (e) => {
-            e.stopPropagation();
+          if (expandedFolders.has(folderPath)) {
+            expandedFolders.delete(folderPath);
+            folderHeader.classList.remove('expanded');
+            children.classList.remove('expanded');
+            folderHeader.querySelector('.folder-icon').textContent = '📁';
+          } else {
+            expandedFolders.add(folderPath);
+            folderHeader.classList.add('expanded');
+            children.classList.add('expanded');
+            folderHeader.querySelector('.folder-icon').textContent = '📂';
+          }
+          return;
+        }
+        
+        // Handle play button clicks
+        if (target.closest('.play-file-btn')) {
+          e.stopPropagation();
+          const fileItem = target.closest('.file-item');
+          if (fileItem) {
+            const path = fileItem.dataset.path;
+            console.log('[WEBVIEW] Play button clicked for:', path);
             vscode.postMessage({ command: 'play', payload: path });
-          });
-
-          item.querySelector('.link-btn').addEventListener('click', (e) => {
-            e.stopPropagation();
+          }
+          return;
+        }
+        
+        // Handle link button clicks
+        if (target.closest('.link-btn')) {
+          e.stopPropagation();
+          const fileItem = target.closest('.file-item');
+          if (fileItem) {
+            const path = fileItem.dataset.path;
+            console.log('[WEBVIEW] Link button clicked for:', path);
             vscode.postMessage({ command: 'openInStrudelCC', payload: path });
-          });
-
-          item.querySelector('.edit-btn').addEventListener('click', (e) => {
-            e.stopPropagation();
+          }
+          return;
+        }
+        
+        // Handle edit button clicks
+        if (target.closest('.edit-btn')) {
+          e.stopPropagation();
+          const fileItem = target.closest('.file-item');
+          if (fileItem) {
+            const path = fileItem.dataset.path;
+            console.log('[WEBVIEW] Edit button clicked for:', path);
             vscode.postMessage({ command: 'openInEditor', payload: path });
-          });
-
-          // Double click: play
-          item.addEventListener('dblclick', () => {
-            vscode.postMessage({ command: 'play', payload: path });
-          });
+          }
+          return;
+        }
+      });
+      
+      // Handle double-click separately
+      fileList.addEventListener('dblclick', (e) => {
+        const fileItem = e.target.closest('.file-item');
+        if (fileItem) {
+          const path = fileItem.dataset.path;
+          console.log('[WEBVIEW] Double-click on file:', path);
+          vscode.postMessage({ command: 'play', payload: path });
+        }
+      });
+      
+      function attachTreeEventHandlers() {
+        // Event delegation is used instead - this function is now just for logging
+        const fileItems = fileList.querySelectorAll('.file-item');
+        console.log('[WEBVIEW] Total file items in DOM:', fileItems.length);
+        fileItems.forEach(item => {
+          console.log('[WEBVIEW] File in DOM:', item.dataset.path);
         });
       }
 
