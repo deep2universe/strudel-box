@@ -89,7 +89,11 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
     
     // Build tree structure from flat file list
     const tree = this._buildFileTree(this._files);
-    this._sendMessage('updateFiles', tree);
+    // Send both tree structure and flat playlist
+    this._sendMessage('updateFiles', { 
+      tree, 
+      playlist: this._state.playlist 
+    });
   }
 
   private _buildFileTree(files: StrudelFile[]): unknown {
@@ -104,7 +108,9 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
     const folderMap = new Map<string, TreeNode>();
     
     for (const file of files) {
-      const parts = file.relativePath.split('/');
+      // Normalize path separators to forward slashes
+      const normalizedRelPath = file.relativePath.replace(/\\/g, '/');
+      const parts = normalizedRelPath.split('/');
       let currentPath = '';
       let currentLevel = root;
       
@@ -114,10 +120,10 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
         currentPath = currentPath ? `${currentPath}/${part}` : part;
         
         if (isFile) {
-          // Add file to current level
+          // Add file to current level - use normalized path
           currentLevel.push({
             name: part,
-            path: file.relativePath,
+            path: normalizedRelPath,
             type: 'file'
           });
         } else {
@@ -218,8 +224,15 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
   }
 
   private async _playFile(relativePath: string): Promise<void> {
-    const file = this._files.find(f => f.relativePath === relativePath);
-    if (!file) { return; }
+    // Normalize path separators for comparison
+    const normalizedPath = relativePath.replace(/\\/g, '/');
+    const file = this._files.find(f => f.relativePath.replace(/\\/g, '/') === normalizedPath);
+    
+    if (!file) { 
+      console.error('[STRUDEL] File not found:', relativePath);
+      console.error('[STRUDEL] Available files:', this._files.map(f => f.relativePath));
+      return; 
+    }
 
     try {
       // Read the file content fresh from disk
@@ -266,8 +279,12 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
   }
 
   private async _openInStrudelCC(relativePath: string): Promise<void> {
-    const file = this._files.find(f => f.relativePath === relativePath);
-    if (!file) {return;}
+    const normalizedPath = relativePath.replace(/\\/g, '/');
+    const file = this._files.find(f => f.relativePath.replace(/\\/g, '/') === normalizedPath);
+    if (!file) {
+      console.error('[STRUDEL] File not found for StrudelCC:', relativePath);
+      return;
+    }
 
     try {
       const content = await vscode.workspace.fs.readFile(file.uri);
@@ -288,8 +305,12 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
   }
 
   private async _openInEditor(relativePath: string): Promise<void> {
-    const file = this._files.find(f => f.relativePath === relativePath);
-    if (!file) {return;}
+    const normalizedPath = relativePath.replace(/\\/g, '/');
+    const file = this._files.find(f => f.relativePath.replace(/\\/g, '/') === normalizedPath);
+    if (!file) {
+      console.error('[STRUDEL] File not found for editor:', relativePath);
+      return;
+    }
 
     await vscode.commands.executeCommand('strudel-box.openInRepl', file.uri);
   }
@@ -715,7 +736,8 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
         playlistIndex: -1
       };
       
-      let files = [];
+      let fileTree = [];  // Tree structure for display
+      let flatPlaylist = [];  // Flat list of file paths for playback
       let repl = null;
       let currentCode = '';
 
@@ -835,8 +857,8 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
           await playCode(currentCode);
         } else if (state.currentTrack) {
           vscode.postMessage({ command: 'requestCode', payload: state.currentTrack });
-        } else if (files.length > 0) {
-          vscode.postMessage({ command: 'requestCode', payload: files[0].path });
+        } else if (flatPlaylist.length > 0) {
+          vscode.postMessage({ command: 'requestCode', payload: flatPlaylist[0] });
         }
       });
 
@@ -870,7 +892,8 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
         
         switch (message.command) {
           case 'updateFiles':
-            files = message.payload;
+            fileTree = message.payload.tree || [];
+            flatPlaylist = message.payload.playlist || [];
             renderFileList();
             break;
           case 'updateState':
@@ -895,12 +918,12 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
       let expandedFolders = new Set();
       
       function renderFileList() {
-        if (!files || files.length === 0) {
+        if (!fileTree || fileTree.length === 0) {
           fileList.innerHTML = '<div class="empty-state">No .strudel files found</div>';
           return;
         }
 
-        fileList.innerHTML = renderTreeNodes(files, 0);
+        fileList.innerHTML = renderTreeNodes(fileTree, 0);
         attachTreeEventHandlers();
       }
       
