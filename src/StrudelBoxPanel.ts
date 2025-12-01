@@ -56,6 +56,11 @@ export class StrudelBoxPanel {
     this.sendMessage('loadCode', code);
   }
 
+  public playCode(code: string): void {
+    // Load and immediately play - handles AudioContext initialization
+    this.sendMessage('playCode', code);
+  }
+
   public hush(): void {
     this.sendMessage('hush');
   }

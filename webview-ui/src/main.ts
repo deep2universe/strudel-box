@@ -283,6 +283,16 @@ function setupVSCodeBridge(): void {
         playPattern();
         break;
         
+      case 'playCode':
+        // Load code and immediately play it
+        if (editor && message.payload) {
+          setCode(editor, message.payload as string);
+          saveCurrentState();
+          // Small delay to ensure code is set, then play
+          setTimeout(() => playPattern(), 100);
+        }
+        break;
+        
       case 'stop':
       case 'hush':
         stopPattern();

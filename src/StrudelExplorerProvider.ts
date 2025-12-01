@@ -129,15 +129,19 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
         await this._openInEditor(message.payload as string);
         break;
 
+      case 'loadFile':
+        await this._loadFile(message.payload as string);
+        break;
+
       case 'refresh':
         await this._scanFiles();
         break;
     }
   }
 
-  private async _playFile(relativePath: string): Promise<void> {
+  private async _loadFile(relativePath: string): Promise<void> {
     const file = this._files.find(f => f.relativePath === relativePath);
-    if (!file) {return;}
+    if (!file) { return; }
 
     try {
       const content = await vscode.workspace.fs.readFile(file.uri);
@@ -146,14 +150,38 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
       // Ensure StrudelBoxPanel is open
       StrudelBoxPanel.createOrShow(this._extensionUri);
 
-      // Wait for panel to be ready, then load and play
+      // Wait for panel to be ready, then load code (without playing)
       setTimeout(() => {
         if (StrudelBoxPanel.currentPanel) {
           StrudelBoxPanel.currentPanel.loadCode(code);
-          // Send play command after code is loaded
-          setTimeout(() => {
-            StrudelBoxPanel.currentPanel?.sendMessage('evaluate');
-          }, 300);
+        }
+      }, 500);
+
+      this._state.currentTrack = relativePath;
+      this._state.playlistIndex = this._state.playlist.indexOf(relativePath);
+      // Don't set isPlaying to true - just loading
+      this._sendMessage('updateState', this._state);
+
+    } catch (err) {
+      vscode.window.showErrorMessage(`Failed to load: ${err}`);
+    }
+  }
+
+  private async _playFile(relativePath: string): Promise<void> {
+    const file = this._files.find(f => f.relativePath === relativePath);
+    if (!file) { return; }
+
+    try {
+      const content = await vscode.workspace.fs.readFile(file.uri);
+      const code = Buffer.from(content).toString('utf-8');
+
+      // Ensure StrudelBoxPanel is open
+      StrudelBoxPanel.createOrShow(this._extensionUri);
+
+      // Wait for panel to be ready, then use playCode (loads + plays in one step)
+      setTimeout(() => {
+        if (StrudelBoxPanel.currentPanel) {
+          StrudelBoxPanel.currentPanel.playCode(code);
         }
       }, 500);
 
@@ -680,6 +708,7 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
         // Add click handlers
         fileList.querySelectorAll('.file-item').forEach(item => {
           const path = item.dataset.path;
+          let clickTimeout = null;
           
           item.querySelector('.play-file-btn').addEventListener('click', (e) => {
             e.stopPropagation();
@@ -696,7 +725,21 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
             vscode.postMessage({ command: 'openInEditor', payload: path });
           });
 
+          // Single click: load file (show in editor without playing)
+          item.addEventListener('click', (e) => {
+            if (e.detail === 1) {
+              clickTimeout = setTimeout(() => {
+                vscode.postMessage({ command: 'loadFile', payload: path });
+              }, 200);
+            }
+          });
+
+          // Double click: load and play
           item.addEventListener('dblclick', () => {
+            if (clickTimeout) {
+              clearTimeout(clickTimeout);
+              clickTimeout = null;
+            }
             vscode.postMessage({ command: 'play', payload: path });
           });
         });
