@@ -1,6 +1,6 @@
 /**
  * Strudel Box - Webview Panel Management
- * Uses iframe with strudel.cc for full feature support
+ * Uses @strudel/web for audio + CodeMirror for editing
  */
 
 import * as vscode from 'vscode';
@@ -68,10 +68,26 @@ export class StrudelBoxPanel {
     this.sendMessage('requestSave');
   }
 
+  public async getCode(): Promise<string> {
+    return new Promise((resolve) => {
+      const handler = this._panel.webview.onDidReceiveMessage((message) => {
+        if (message.command === 'codeResponse') {
+          handler.dispose();
+          resolve(message.payload as string);
+        }
+      });
+      this.sendMessage('getCode');
+      setTimeout(() => {
+        handler.dispose();
+        resolve('');
+      }, 5000);
+    });
+  }
+
   private async _handleMessage(message: { command: string; payload?: unknown }): Promise<void> {
     switch (message.command) {
       case 'ready':
-        console.log('Strudel Box webview ready');
+        console.log('[STRUDEL-BOX] Webview ready');
         break;
       case 'error':
         vscode.window.showErrorMessage(`Strudel Box: ${message.payload}`);
@@ -79,15 +95,17 @@ export class StrudelBoxPanel {
       case 'saveCode':
         await this._saveCode(message.payload as string);
         break;
+      case 'codeResponse':
+        break;
       case 'log':
-        console.log('Strudel Box:', message.payload);
+        console.log('[STRUDEL-BOX]', message.payload);
         break;
     }
   }
 
   private async _saveCode(code: string): Promise<void> {
     const uri = await vscode.window.showSaveDialog({
-      filters: { 'Strudel': ['strudel'] },
+      filters: { 'Strudel Pattern': ['strudel', 'js'] },
       saveLabel: 'Save Pattern'
     });
     if (uri) {
@@ -102,16 +120,14 @@ export class StrudelBoxPanel {
     const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(distUri, 'index.css'));
     const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(distUri, 'index.js'));
 
-    const defaultCode = `// 🎵 Strudel Box
+    const nonce = this._getNonce();
+
+    const defaultCode = `// 🎵 Welcome to Strudel Box!
 // Press Ctrl+Enter to play, Ctrl+. to stop
 
-note("c3 e3 g3 c4")
-  .sound("sawtooth")
-  .lpf(800)
-  .room(0.3)`;
-
-    // Base64 encode the default code for the iframe URL
-    const encodedCode = Buffer.from(defaultCode).toString('base64');
+s("bd sd:1 [~ bd] sd:2")
+  .bank("RolandTR909")
+  .room(0.5)`;
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -120,36 +136,34 @@ note("c3 e3 g3 c4")
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="
     default-src 'none';
-    script-src 'unsafe-eval' 'unsafe-inline' ${webview.cspSource};
-    style-src 'unsafe-inline' ${webview.cspSource};
-    font-src ${webview.cspSource} https: data:;
+    script-src 'nonce-${nonce}' 'unsafe-eval' 'wasm-unsafe-eval' https://unpkg.com https://cdn.jsdelivr.net ${webview.cspSource};
+    style-src 'unsafe-inline' ${webview.cspSource} https://unpkg.com https://fonts.googleapis.com;
+    font-src ${webview.cspSource} https://fonts.gstatic.com https://unpkg.com https:;
     img-src ${webview.cspSource} https: data: blob:;
-    frame-src https://strudel.cc https://*.strudel.cc;
-    connect-src https: wss: data: blob:;
+    connect-src 
+      https://unpkg.com 
+      https://cdn.jsdelivr.net 
+      https://raw.githubusercontent.com 
+      https://*.strudel.cc 
+      https://strudel.cc
+      https://freesound.org
+      https://*.freesound.org
+      https://sampleswap.org
+      https://*.sampleswap.org
+      https:;
+    media-src https: blob: data:;
+    worker-src blob: data:;
   ">
   <title>Strudel Box</title>
+  
+  <!-- Strudel Web - Audio Engine -->
+  <script nonce="${nonce}" src="https://unpkg.com/@strudel/web@latest"></script>
+  
   <link rel="stylesheet" href="${styleUri}">
-  <style>
-    #strudel-iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
-      border-radius: var(--border-radius);
-    }
-    #editor-wrapper {
-      flex: 1;
-      min-height: 400px;
-      border-radius: var(--border-radius);
-      overflow: hidden;
-      border: 1px solid var(--bg-tertiary);
-    }
-    #editor-wrapper:focus-within {
-      border-color: var(--accent-primary);
-      box-shadow: var(--glow-primary);
-    }
-  </style>
+  <script nonce="${nonce}">window.INITIAL_CODE = ${JSON.stringify(defaultCode)};</script>
 </head>
 <body>
+  <!-- Particle Effects Canvas (Animated Backgrounds) -->
   <canvas id="particles-canvas"></canvas>
   
   <div id="app">
@@ -166,16 +180,21 @@ note("c3 e3 g3 c4")
     </header>
     
     <main>
-      <div id="editor-wrapper">
-        <iframe 
-          id="strudel-iframe"
-          src="https://strudel.cc/#${encodedCode}"
-          allow="autoplay; microphone"
-        ></iframe>
+      <!-- CodeMirror Editor -->
+      <div id="editor-container">
+        <div id="editor"></div>
+      </div>
+      
+      <!-- Visualizer -->
+      <div id="visualizer-container">
+        <canvas id="visualizer"></canvas>
       </div>
       
       <div id="controls">
-        <span id="status">Full Strudel REPL - All features available!</span>
+        <button id="play" class="btn btn-play">▶ Play</button>
+        <button id="stop" class="btn btn-stop">⏹ Stop</button>
+        <button id="save" class="btn btn-save">💾 Save</button>
+        <span id="status">Ready</span>
         <div class="keyboard-hints">
           <span><kbd>Ctrl</kbd>+<kbd>Enter</kbd> Play</span>
           <span><kbd>Ctrl</kbd>+<kbd>.</kbd> Stop</span>
@@ -184,9 +203,18 @@ note("c3 e3 g3 c4")
     </main>
   </div>
   
-  <script type="module" src="${scriptUri}"></script>
+  <script nonce="${nonce}" type="module" src="${scriptUri}"></script>
 </body>
 </html>`;
+  }
+
+  private _getNonce(): string {
+    let text = '';
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    for (let i = 0; i < 32; i++) {
+      text += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return text;
   }
 
   public dispose(): void {
@@ -194,7 +222,9 @@ note("c3 e3 g3 c4")
     this._panel.dispose();
     while (this._disposables.length) {
       const d = this._disposables.pop();
-      if (d) d.dispose();
+      if (d) {
+        d.dispose();
+      }
     }
   }
 }

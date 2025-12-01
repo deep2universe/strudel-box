@@ -134,7 +134,6 @@ class StrudelEditorProvider implements vscode.CustomTextEditorProvider {
     webviewPanel.webview.onDidReceiveMessage(async (message) => {
       switch (message.command) {
         case 'ready':
-          // Send initial code
           webviewPanel.webview.postMessage({ command: 'loadCode', payload: document.getText() });
           break;
         case 'saveCode':
@@ -168,9 +167,7 @@ class StrudelEditorProvider implements vscode.CustomTextEditorProvider {
     const distUri = vscode.Uri.joinPath(this.extensionUri, 'webview-ui', 'dist');
     const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(distUri, 'index.js'));
     const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(distUri, 'index.css'));
-
-    // Escape code for safe embedding
-    const escapedCode = initialCode.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const nonce = this.getNonce();
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -179,18 +176,18 @@ class StrudelEditorProvider implements vscode.CustomTextEditorProvider {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="
     default-src 'none';
-    script-src 'unsafe-eval' 'unsafe-inline' 'wasm-unsafe-eval' data: blob: https://unpkg.com https://cdn.jsdelivr.net https://*.strudel.cc https://raw.githubusercontent.com ${webview.cspSource};
-    style-src 'unsafe-inline' ${webview.cspSource};
-    font-src ${webview.cspSource} https: data:;
+    script-src 'nonce-${nonce}' 'unsafe-eval' 'wasm-unsafe-eval' https://unpkg.com https://cdn.jsdelivr.net ${webview.cspSource};
+    style-src 'unsafe-inline' ${webview.cspSource} https://unpkg.com https://fonts.googleapis.com;
+    font-src ${webview.cspSource} https://fonts.gstatic.com https://unpkg.com https:;
     img-src ${webview.cspSource} https: data: blob:;
     connect-src https: wss: data: blob:;
     media-src https: blob: data:;
-    worker-src blob: data: https://unpkg.com https://cdn.jsdelivr.net;
+    worker-src blob: data:;
   ">
   <title>Strudel Box</title>
-  <script src="https://unpkg.com/@strudel/web@latest"></script>
+  <script nonce="${nonce}" src="https://unpkg.com/@strudel/web@latest"></script>
   <link rel="stylesheet" href="${styleUri}">
-  <script>window.INITIAL_CODE = ${JSON.stringify(initialCode)};</script>
+  <script nonce="${nonce}">window.INITIAL_CODE = ${JSON.stringify(initialCode)};</script>
 </head>
 <body>
   <canvas id="particles-canvas"></canvas>
@@ -213,6 +210,10 @@ class StrudelEditorProvider implements vscode.CustomTextEditorProvider {
         <div id="editor"></div>
       </div>
       
+      <div id="visualizer-container">
+        <canvas id="visualizer"></canvas>
+      </div>
+      
       <div id="controls">
         <button id="play" class="btn btn-play">▶ Play</button>
         <button id="stop" class="btn btn-stop">⏹ Stop</button>
@@ -226,9 +227,18 @@ class StrudelEditorProvider implements vscode.CustomTextEditorProvider {
     </main>
   </div>
   
-  <script type="module" src="${scriptUri}"></script>
+  <script nonce="${nonce}" type="module" src="${scriptUri}"></script>
 </body>
 </html>`;
+  }
+
+  private getNonce(): string {
+    let text = '';
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    for (let i = 0; i < 32; i++) {
+      text += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return text;
   }
 }
 

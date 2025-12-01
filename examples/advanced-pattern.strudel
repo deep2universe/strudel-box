@@ -1,0 +1,12 @@
+// 🎵 Advanced Strudel Pattern
+// Tests various Strudel features
+
+// Load samples from GitHub
+samples('github:tidalcycles/dirt-samples')
+
+// Complex pattern with effects
+s("bd sd:1 [~ bd] sd:2, hh*8")
+  .bank("RolandTR909")
+  .room(0.3)
+  .delay(0.25)
+  .lpf(sine.range(400, 2000).slow(4))

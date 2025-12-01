@@ -4,10 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Strudel Box</title>
+  <!-- Strudel Web - Audio Engine -->
   <script src="https://unpkg.com/@strudel/web@latest"></script>
 </head>
 <body>
-  <!-- Particle Effects Canvas -->
+  <!-- Particle Effects Canvas (Animated Backgrounds) -->
   <canvas id="particles-canvas"></canvas>
   
   <div id="app">
@@ -26,19 +27,20 @@
     </header>
     
     <main>
+      <!-- CodeMirror Editor -->
       <div id="editor-container">
         <div id="editor"></div>
       </div>
       
+      <!-- Visualizer -->
+      <div id="visualizer-container">
+        <canvas id="visualizer"></canvas>
+      </div>
+      
       <div id="controls">
-        <button id="play" class="btn btn-play">
-          <span class="btn-icon"></span>
-          <span class="btn-text">▶ Play</span>
-        </button>
-        <button id="stop" class="btn btn-stop">
-          <span class="btn-icon"></span>
-          <span class="btn-text">⏹ Stop</span>
-        </button>
+        <button id="play" class="btn btn-play">▶ Play</button>
+        <button id="stop" class="btn btn-stop">⏹ Stop</button>
+        <button id="save" class="btn btn-save">💾 Save</button>
         <span id="status">Ready</span>
         <div class="keyboard-hints">
           <span><kbd>Ctrl</kbd>+<kbd>Enter</kbd> Play</span>

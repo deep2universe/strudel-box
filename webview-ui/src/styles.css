@@ -81,7 +81,7 @@ body {
    ============================================ */
 #editor-wrapper {
   flex: 1;
-  min-height: 400px;
+  min-height: 300px;
   border-radius: var(--border-radius);
   overflow: hidden;
   border: 1px solid var(--bg-tertiary);
@@ -94,10 +94,31 @@ body {
   box-shadow: var(--glow-primary);
 }
 
-strudel-editor {
+strudel-editor,
+#strudel-repl {
   display: block;
   width: 100%;
   height: 100%;
+}
+
+/* Style the strudel-editor internal CodeMirror */
+strudel-editor .cm-editor,
+#strudel-repl .cm-editor {
+  height: 100%;
+  font-size: 14px;
+  background: var(--bg-secondary);
+}
+
+strudel-editor .cm-scroller,
+#strudel-repl .cm-scroller {
+  font-family: 'Fira Code', 'JetBrains Mono', 'Consolas', monospace;
+  overflow: auto;
+}
+
+strudel-editor .cm-gutters,
+#strudel-repl .cm-gutters {
+  background: var(--bg-primary);
+  border-right: 1px solid var(--bg-tertiary);
 }
 
 /* Theme-specific editor wrapper styles */
@@ -119,10 +140,46 @@ strudel-editor {
   box-shadow: 0 0 15px #00ff00;
 }
 
-/* Hide strudel-editor's built-in controls (we have our own UI) */
-strudel-editor [class*="controls"],
-strudel-editor [class*="toolbar"] {
-  display: none !important;
+/* ============================================
+   Visualizer
+   ============================================ */
+#visualizer-container {
+  height: 80px;
+  min-height: 60px;
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  border: 1px solid var(--bg-tertiary);
+  background: var(--bg-secondary);
+}
+
+#visualizer {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Visualizer CSS Variables */
+:root {
+  --visualizer-bg: transparent;
+  --visualizer-bar: #00ffff;
+}
+
+[data-theme="halloween"] {
+  --visualizer-bar: #ff6600;
+}
+
+[data-theme="8bit"] {
+  --visualizer-bar: #00ff00;
+}
+
+/* 8-Bit CRT Effect on visualizer */
+[data-theme="8bit"] #visualizer {
+  image-rendering: pixelated;
+}
+
+[data-theme="8bit"] #visualizer-container {
+  border: 4px solid #00ff00;
+  border-radius: 0;
 }
 
 /* ============================================
