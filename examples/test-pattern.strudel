@@ -1,7 +1,6 @@
 // 🎵 Strudel Box Test Pattern
 // Press Ctrl+Enter to play, Ctrl+. to stop
 
-// Basic drum pattern with RolandTR909 samples
-s("bd sd:1 [~ bd] sd:2")
-  .bank("RolandTR909")
-  .room(0.5)
+// Basic drum pattern using default samples
+s("bd sd [~ bd] hh*4")
+  .room(0.3)

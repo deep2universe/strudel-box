@@ -7,6 +7,13 @@ import { postMessage, saveState, getState } from './vscode';
 import { ParticleSystem, ThemeType } from './particles';
 import { Visualizer } from './visualizer';
 import { createEditor, setCode, getCode } from './editor';
+import { 
+  loadDefaultSamples, 
+  areSamplesLoaded, 
+  setLogCallback,
+  warnAboutUnknownBanks 
+} from './sampleLoader';
+import { initLogPanel, addLog, getLogCallback } from './logPanel';
 import type { EditorView } from 'codemirror';
 import './styles.css';
 
@@ -47,7 +54,6 @@ let repl: StrudelREPL | null = null;
 let particleSystem: ParticleSystem | null = null;
 let visualizer: Visualizer | null = null;
 let currentTheme: ThemeType = 'default';
-let samplesLoaded = false;
 let strudelReady = false;
 
 const DEFAULT_CODE = `// 🎵 Welcome to Strudel Box!
@@ -85,15 +91,16 @@ async function waitForStrudel(): Promise<void> {
 }
 
 async function loadSamples(): Promise<void> {
-  if (samplesLoaded) return;
+  if (areSamplesLoaded()) return;
   
   console.log('[STRUDEL-BOX] Loading samples...');
   updateStatus('Loading samples...', 'ready');
   
-  if (window.samples) {
-    await window.samples('github:tidalcycles/Dirt-Samples/master');
-    samplesLoaded = true;
+  const success = await loadDefaultSamples();
+  if (success) {
     console.log('[STRUDEL-BOX] Samples loaded');
+  } else {
+    console.warn('[STRUDEL-BOX] Some samples may not have loaded');
   }
 }
 
@@ -105,21 +112,23 @@ async function initStrudel(): Promise<void> {
   try {
     await waitForStrudel();
     
-    // Load samples first
-    await loadSamples();
-    
     console.log('[STRUDEL-BOX] Initializing Strudel REPL...');
     
-    // Initialize Strudel REPL
+    // Initialize Strudel REPL FIRST - this makes window.samples available
     repl = await window.initStrudel!();
     strudelReady = true;
     
     console.log('[STRUDEL-BOX] Strudel ready:', Object.keys(repl));
+    
+    // NOW load samples (after initStrudel made window.samples available)
+    await loadSamples();
+    
     updateStatus('Ready - Press Ctrl+Enter to play', 'ready');
     
   } catch (err) {
     console.error('[STRUDEL-BOX] Failed to initialize Strudel:', err);
     updateStatus(`Error: ${err}`, 'error');
+    addLog(`Failed to initialize: ${err}`, 'error');
   }
 }
 
@@ -184,33 +193,43 @@ async function playPattern(code?: string): Promise<void> {
   if (!repl || !strudelReady) {
     console.log('[STRUDEL-BOX] Initializing Strudel before play...');
     updateStatus('Initializing...', 'ready');
+    addLog('Initializing Strudel audio engine...', 'info');
     await initStrudel();
     if (!repl) {
       updateStatus('Failed to initialize', 'error');
+      addLog('Failed to initialize Strudel', 'error');
       return;
     }
   }
   
   // Ensure samples are loaded
-  if (!samplesLoaded) {
+  if (!areSamplesLoaded()) {
     await loadSamples();
   }
   
   const patternCode = code || (editor ? getCode(editor) : '');
   if (!patternCode.trim()) {
     updateStatus('No code to play', 'error');
+    addLog('No code to play', 'warn');
     return;
   }
   
+  // Warn about potentially missing banks
+  warnAboutUnknownBanks(patternCode);
+  
   try {
     console.log('[STRUDEL-BOX] Evaluating pattern...');
+    addLog('Evaluating pattern...', 'info');
     await repl.evaluate(patternCode);
     updateStatus('▶ Playing', 'playing');
+    addLog('Pattern playing', 'success');
     connectVisualizerToAudio();
     saveCurrentState();
   } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
     console.error('[STRUDEL-BOX] Evaluation error:', err);
-    updateStatus(`Error: ${err}`, 'error');
+    updateStatus(`Error: ${errorMsg}`, 'error');
+    addLog(`Evaluation error: ${errorMsg}`, 'error');
   }
 }
 
@@ -221,6 +240,7 @@ function stopPattern(): void {
     repl.stop();
     updateStatus('⏹ Stopped', 'stopped');
     console.log('[STRUDEL-BOX] Pattern stopped');
+    addLog('Pattern stopped', 'info');
   } catch (err) {
     console.error('[STRUDEL-BOX] Stop error:', err);
   }
@@ -378,6 +398,11 @@ async function init(): Promise<void> {
   
   // Initialize editor first (shows UI immediately)
   initEditor();
+  
+  // Initialize log panel and connect to sample loader
+  initLogPanel();
+  setLogCallback(getLogCallback());
+  addLog('Strudel Box initialized', 'success');
   
   // Initialize Strudel audio engine (async)
   await initStrudel();

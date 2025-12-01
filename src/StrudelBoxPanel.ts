@@ -125,9 +125,8 @@ export class StrudelBoxPanel {
     const defaultCode = `// 🎵 Welcome to Strudel Box!
 // Press Ctrl+Enter to play, Ctrl+. to stop
 
-s("bd sd:1 [~ bd] sd:2")
-  .bank("RolandTR909")
-  .room(0.5)`;
+s("bd sd [~ bd] hh*4")
+  .room(0.3)`;
 
     return `<!DOCTYPE html>
 <html lang="en">
