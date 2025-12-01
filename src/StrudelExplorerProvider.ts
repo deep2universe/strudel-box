@@ -103,8 +103,22 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
         await this._playFile(message.payload as string);
         break;
 
+      case 'requestCode':
+        // Player requests code for a track
+        await this._playFile(message.payload as string);
+        break;
+
       case 'stop':
-        this._stopPlayback();
+        this._state.isPlaying = false;
+        this._sendMessage('updateState', this._state);
+        break;
+
+      case 'playbackStarted':
+        this._state.isPlaying = true;
+        break;
+
+      case 'playbackStopped':
+        this._state.isPlaying = false;
         break;
 
       case 'next':
@@ -133,32 +147,9 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
         await this._openInEditor(message.payload as string);
         break;
 
-      case 'loadFile':
-        await this._loadFile(message.payload as string);
-        break;
-
       case 'refresh':
         await this._scanFiles();
         break;
-    }
-  }
-
-  private async _loadFile(relativePath: string): Promise<void> {
-    const file = this._files.find(f => f.relativePath === relativePath);
-    if (!file) { return; }
-
-    try {
-      // Open the file in the custom editor (as a normal tab)
-      // This uses the registered customEditor for .strudel files
-      await vscode.commands.executeCommand('vscode.openWith', file.uri, 'strudel-box.strudelEditor');
-
-      this._state.currentTrack = relativePath;
-      this._state.playlistIndex = this._state.playlist.indexOf(relativePath);
-      // Don't set isPlaying to true - just loading
-      this._sendMessage('updateState', this._state);
-
-    } catch (err) {
-      vscode.window.showErrorMessage(`Failed to load: ${err}`);
     }
   }
 
@@ -167,33 +158,20 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
     if (!file) { return; }
 
     try {
-      // FIRST: Stop all currently playing audio in all tabs
-      await vscode.commands.executeCommand('strudel-box.hush');
+      // Read the file content fresh from disk
+      const content = await vscode.workspace.fs.readFile(file.uri);
+      const code = Buffer.from(content).toString('utf-8');
 
-      // Open the file in the custom editor (as a normal tab)
-      await vscode.commands.executeCommand('vscode.openWith', file.uri, 'strudel-box.strudelEditor');
-
-      // Wait for the editor to open, then send play command
-      setTimeout(() => {
-        // Send evaluate command to the active custom editor
-        vscode.commands.executeCommand('strudel-box.evaluateActive');
-      }, 500);
+      // Send code to the player webview to play
+      this._sendMessage('playCode', code, relativePath);
 
       this._state.currentTrack = relativePath;
       this._state.isPlaying = true;
       this._state.playlistIndex = this._state.playlist.indexOf(relativePath);
-      this._sendMessage('updateState', this._state);
 
     } catch (err) {
       vscode.window.showErrorMessage(`Failed to play: ${err}`);
     }
-  }
-
-  private _stopPlayback(): void {
-    // Use the hush command which stops all audio
-    vscode.commands.executeCommand('strudel-box.hush');
-    this._state.isPlaying = false;
-    this._sendMessage('updateState', this._state);
   }
 
   private async _playNext(): Promise<void> {
@@ -252,9 +230,9 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
     await vscode.commands.executeCommand('strudel-box.openInRepl', file.uri);
   }
 
-  private _sendMessage(command: string, payload?: unknown): void {
+  private _sendMessage(command: string, payload?: unknown, track?: string): void {
     if (this._view) {
-      this._view.webview.postMessage({ command, payload });
+      this._view.webview.postMessage({ command, payload, track });
     }
   }
 
@@ -269,10 +247,15 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
   <meta http-equiv="Content-Security-Policy" content="
     default-src 'none';
     style-src 'unsafe-inline' ${webview.cspSource};
-    script-src 'nonce-${nonce}';
-    font-src ${webview.cspSource};
+    script-src 'nonce-${nonce}' 'unsafe-eval' 'wasm-unsafe-eval' https://unpkg.com https://cdn.jsdelivr.net;
+    font-src ${webview.cspSource} https:;
+    connect-src https: wss: data: blob:;
+    media-src https: blob: data:;
+    worker-src blob: data:;
   ">
-  <title>Strudel Explorer</title>
+  <title>Strudel Player</title>
+  <!-- Strudel Audio Engine -->
+  <script nonce="${nonce}" src="https://unpkg.com/@strudel/web@latest"></script>
   <style>
     ${this._getStyles()}
   </style>
@@ -620,6 +603,8 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
       };
       
       let files = [];
+      let repl = null;
+      let currentCode = '';
 
       // Elements
       const fileList = document.getElementById('fileList');
@@ -631,14 +616,114 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
       const refreshBtn = document.getElementById('refreshBtn');
       const themeButtons = document.querySelectorAll('.theme-btn');
 
-      // Event Listeners
-      playPauseBtn.addEventListener('click', () => {
+      // ========== STRUDEL AUDIO ENGINE ==========
+      // Store reference to window.initStrudel before defining local function
+      const strudelInit = window.initStrudel;
+      let samplesLoaded = false;
+      let samplesLoading = false;
+      
+      // Sample sources (same as sampleLoader.ts)
+      const DOUGH_SAMPLES_BASE = 'https://raw.githubusercontent.com/felixroos/dough-samples/main';
+      const SAMPLE_SOURCES = [
+        { json: DOUGH_SAMPLES_BASE + '/tidal-drum-machines.json', name: 'Drum Machines' },
+        { json: DOUGH_SAMPLES_BASE + '/piano.json', name: 'Piano' },
+        { json: DOUGH_SAMPLES_BASE + '/Dirt-Samples.json', name: 'Dirt Samples' },
+        { json: DOUGH_SAMPLES_BASE + '/EmuSP12.json', name: 'Emu SP12' },
+        { json: DOUGH_SAMPLES_BASE + '/vcsl.json', name: 'VCSL' },
+      ];
+      
+      async function loadSamples() {
+        if (samplesLoaded || samplesLoading) return;
+        if (!window.samples) {
+          console.warn('window.samples not available yet');
+          return;
+        }
+        
+        samplesLoading = true;
+        console.log('Loading sample libraries...');
+        
+        let successCount = 0;
+        for (const { json, name } of SAMPLE_SOURCES) {
+          try {
+            console.log('Loading ' + name + '...');
+            await window.samples(json);
+            successCount++;
+            console.log('Loaded ' + name);
+          } catch (err) {
+            console.warn('Could not load ' + name + ':', err);
+          }
+        }
+        
+        // Also load GitHub Dirt-Samples as fallback
+        try {
+          await window.samples('github:tidalcycles/Dirt-Samples/master');
+          successCount++;
+          console.log('Loaded Dirt-Samples from GitHub');
+        } catch (err) {
+          console.warn('Could not load GitHub samples:', err);
+        }
+        
+        samplesLoaded = successCount > 0;
+        samplesLoading = false;
+        console.log('Sample loading complete. Loaded ' + successCount + ' libraries.');
+      }
+      
+      async function initAudioEngine() {
+        if (repl) return;
+        if (!strudelInit) {
+          console.error('Strudel not loaded from CDN');
+          return;
+        }
+        try {
+          repl = await strudelInit();
+          console.log('Strudel initialized');
+          
+          // Load samples AFTER Strudel init (window.samples becomes available)
+          await loadSamples();
+        } catch (err) {
+          console.error('Failed to init Strudel:', err);
+        }
+      }
+
+      async function playCode(code) {
+        await initAudioEngine();
+        if (!repl) return;
+        
+        // Ensure samples are loaded before playing
+        if (!samplesLoaded && !samplesLoading) {
+          await loadSamples();
+        }
+        
+        try {
+          currentCode = code;
+          await repl.evaluate(code);
+          state.isPlaying = true;
+          updateUI();
+          vscode.postMessage({ command: 'playbackStarted' });
+        } catch (err) {
+          console.error('Playback error:', err);
+        }
+      }
+
+      function stopPlayback() {
+        if (repl) {
+          repl.stop();
+        }
+        state.isPlaying = false;
+        updateUI();
+        vscode.postMessage({ command: 'playbackStopped' });
+      }
+
+      // ========== EVENT LISTENERS ==========
+      playPauseBtn.addEventListener('click', async () => {
         if (state.isPlaying) {
-          vscode.postMessage({ command: 'stop' });
+          stopPlayback();
+        } else if (currentCode) {
+          await playCode(currentCode);
         } else if (state.currentTrack) {
-          vscode.postMessage({ command: 'play', payload: state.currentTrack });
+          vscode.postMessage({ command: 'requestCode', payload: state.currentTrack });
         } else if (files.length > 0) {
-          vscode.postMessage({ command: 'play', payload: files[0].path });
+          vscode.postMessage({ command: 'requestCode', payload: files[0].path });
         }
       });
 
@@ -651,6 +736,8 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
       });
 
       shuffleBtn.addEventListener('click', () => {
+        state.shuffleMode = !state.shuffleMode;
+        updateUI();
         vscode.postMessage({ command: 'toggleShuffle' });
       });
 
@@ -664,8 +751,8 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
         });
       });
 
-      // Message Handler
-      window.addEventListener('message', event => {
+      // ========== MESSAGE HANDLER ==========
+      window.addEventListener('message', async event => {
         const message = event.data;
         
         switch (message.command) {
@@ -676,6 +763,17 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
           case 'updateState':
             state = { ...state, ...message.payload };
             updateUI();
+            break;
+          case 'playCode':
+            // Stop current playback first, then play new code
+            stopPlayback();
+            state.currentTrack = message.track;
+            state.playlistIndex = state.playlist.indexOf(message.track);
+            currentTrackEl.textContent = message.track ? message.track.split('/').pop() : '—';
+            await playCode(message.payload);
+            break;
+          case 'stop':
+            stopPlayback();
             break;
         }
       });
@@ -701,7 +799,6 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
         // Add click handlers
         fileList.querySelectorAll('.file-item').forEach(item => {
           const path = item.dataset.path;
-          let clickTimeout = null;
           
           item.querySelector('.play-file-btn').addEventListener('click', (e) => {
             e.stopPropagation();
@@ -718,21 +815,8 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
             vscode.postMessage({ command: 'openInEditor', payload: path });
           });
 
-          // Single click: load file (show in editor without playing)
-          item.addEventListener('click', (e) => {
-            if (e.detail === 1) {
-              clickTimeout = setTimeout(() => {
-                vscode.postMessage({ command: 'loadFile', payload: path });
-              }, 200);
-            }
-          });
-
-          // Double click: load and play
+          // Double click: play
           item.addEventListener('dblclick', () => {
-            if (clickTimeout) {
-              clearTimeout(clickTimeout);
-              clickTimeout = null;
-            }
             vscode.postMessage({ command: 'play', payload: path });
           });
         });
