@@ -29,11 +29,17 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Command: Hush (stop all audio)
   const hushCommand = vscode.commands.registerCommand('strudel-box.hush', () => {
+    // Stop in standalone panel
     if (StrudelBoxPanel.currentPanel) {
       StrudelBoxPanel.currentPanel.hush();
-    } else {
-      vscode.window.showInformationMessage('Strudel Box is not open');
     }
+    // Stop in all custom editors
+    StrudelEditorProvider.hushAll();
+  });
+
+  // Command: Evaluate active editor (play)
+  const evaluateActiveCommand = vscode.commands.registerCommand('strudel-box.evaluateActive', () => {
+    StrudelEditorProvider.evaluateActive();
   });
 
   // Command: Load File
@@ -99,6 +105,7 @@ export function activate(context: vscode.ExtensionContext) {
     openCommand,
     focusExplorerCommand,
     hushCommand,
+    evaluateActiveCommand,
     loadFileCommand,
     setThemeCommand,
     saveCommand,
@@ -129,13 +136,44 @@ async function openFileInStrudelBox(extensionUri: vscode.Uri, fileUri: vscode.Ur
  * Opens files directly in Strudel Box REPL when double-clicked
  */
 class StrudelEditorProvider implements vscode.CustomTextEditorProvider {
+  // Track active webview panels by document URI
+  private static _activeWebviews: Map<string, vscode.WebviewPanel> = new Map();
+
   constructor(private readonly extensionUri: vscode.Uri) {}
+
+  // Static method to send evaluate command to active editor
+  public static evaluateActive(): void {
+    // Find the most recently focused webview
+    for (const [, panel] of StrudelEditorProvider._activeWebviews) {
+      if (panel.active) {
+        panel.webview.postMessage({ command: 'evaluate' });
+        return;
+      }
+    }
+    // If no active panel, try the first one
+    const firstPanel = StrudelEditorProvider._activeWebviews.values().next().value;
+    if (firstPanel) {
+      firstPanel.webview.postMessage({ command: 'evaluate' });
+    }
+  }
+
+  // Static method to stop playback on all editors
+  public static hushAll(): void {
+    for (const [, panel] of StrudelEditorProvider._activeWebviews) {
+      panel.webview.postMessage({ command: 'hush' });
+    }
+  }
 
   async resolveCustomTextEditor(
     document: vscode.TextDocument,
     webviewPanel: vscode.WebviewPanel,
     _token: vscode.CancellationToken
   ): Promise<void> {
+    const docUri = document.uri.toString();
+
+    // Track this webview
+    StrudelEditorProvider._activeWebviews.set(docUri, webviewPanel);
+
     // Configure webview
     webviewPanel.webview.options = {
       enableScripts: true,
@@ -175,6 +213,7 @@ class StrudelEditorProvider implements vscode.CustomTextEditorProvider {
 
     webviewPanel.onDidDispose(() => {
       changeDocumentSubscription.dispose();
+      StrudelEditorProvider._activeWebviews.delete(docUri);
     });
   }
 

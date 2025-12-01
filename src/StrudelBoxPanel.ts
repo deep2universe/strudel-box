@@ -11,6 +11,7 @@ export class StrudelBoxPanel {
   private readonly _panel: vscode.WebviewPanel;
   private readonly _extensionUri: vscode.Uri;
   private _disposables: vscode.Disposable[] = [];
+  private _currentFileUri: vscode.Uri | undefined;
 
   private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
     this._panel = panel;
@@ -52,13 +53,19 @@ export class StrudelBoxPanel {
     this._panel.webview.postMessage({ command, payload });
   }
 
-  public loadCode(code: string): void {
+  public loadCode(code: string, fileUri?: vscode.Uri): void {
+    this._currentFileUri = fileUri;
     this.sendMessage('loadCode', code);
   }
 
-  public playCode(code: string): void {
+  public playCode(code: string, fileUri?: vscode.Uri): void {
+    this._currentFileUri = fileUri;
     // Load and immediately play - handles AudioContext initialization
     this.sendMessage('playCode', code);
+  }
+
+  public get currentFileUri(): vscode.Uri | undefined {
+    return this._currentFileUri;
   }
 
   public hush(): void {
@@ -109,13 +116,17 @@ export class StrudelBoxPanel {
   }
 
   private async _saveCode(code: string): Promise<void> {
-    const uri = await vscode.window.showSaveDialog({
-      filters: { 'Strudel Pattern': ['strudel', 'js'] },
-      saveLabel: 'Save Pattern'
-    });
-    if (uri) {
-      await vscode.workspace.fs.writeFile(uri, Buffer.from(code, 'utf-8'));
-      vscode.window.showInformationMessage(`Saved: ${uri.fsPath}`);
+    // If we have a current file, save directly to it
+    if (this._currentFileUri) {
+      try {
+        await vscode.workspace.fs.writeFile(this._currentFileUri, Buffer.from(code, 'utf-8'));
+        vscode.window.showInformationMessage(`Saved: ${vscode.workspace.asRelativePath(this._currentFileUri)}`);
+      } catch (err) {
+        vscode.window.showErrorMessage(`Failed to save: ${err}`);
+      }
+    } else {
+      // No file loaded - show info message
+      vscode.window.showInformationMessage('No file loaded. Use the Strudel Player to load a file first.');
     }
   }
 

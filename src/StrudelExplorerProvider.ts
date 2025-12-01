@@ -4,7 +4,6 @@
  */
 
 import * as vscode from 'vscode';
-import { StrudelBoxPanel } from './StrudelBoxPanel';
 
 interface StrudelFile {
   name: string;
@@ -69,7 +68,12 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
     
     this._fileWatcher.onDidCreate(() => this._scanFiles());
     this._fileWatcher.onDidDelete(() => this._scanFiles());
-    this._fileWatcher.onDidChange(() => this._scanFiles());
+    this._fileWatcher.onDidChange((uri) => this._onFileChanged(uri));
+  }
+
+  private async _onFileChanged(_uri: vscode.Uri): Promise<void> {
+    // Refresh file list - the custom editor handles its own document sync
+    await this._scanFiles();
   }
 
   private async _scanFiles(): Promise<void> {
@@ -144,18 +148,9 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
     if (!file) { return; }
 
     try {
-      const content = await vscode.workspace.fs.readFile(file.uri);
-      const code = Buffer.from(content).toString('utf-8');
-
-      // Ensure StrudelBoxPanel is open
-      StrudelBoxPanel.createOrShow(this._extensionUri);
-
-      // Wait for panel to be ready, then load code (without playing)
-      setTimeout(() => {
-        if (StrudelBoxPanel.currentPanel) {
-          StrudelBoxPanel.currentPanel.loadCode(code);
-        }
-      }, 500);
+      // Open the file in the custom editor (as a normal tab)
+      // This uses the registered customEditor for .strudel files
+      await vscode.commands.executeCommand('vscode.openWith', file.uri, 'strudel-box.strudelEditor');
 
       this._state.currentTrack = relativePath;
       this._state.playlistIndex = this._state.playlist.indexOf(relativePath);
@@ -172,17 +167,13 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
     if (!file) { return; }
 
     try {
-      const content = await vscode.workspace.fs.readFile(file.uri);
-      const code = Buffer.from(content).toString('utf-8');
+      // Open the file in the custom editor (as a normal tab)
+      await vscode.commands.executeCommand('vscode.openWith', file.uri, 'strudel-box.strudelEditor');
 
-      // Ensure StrudelBoxPanel is open
-      StrudelBoxPanel.createOrShow(this._extensionUri);
-
-      // Wait for panel to be ready, then use playCode (loads + plays in one step)
+      // Wait for the editor to open, then send play command
       setTimeout(() => {
-        if (StrudelBoxPanel.currentPanel) {
-          StrudelBoxPanel.currentPanel.playCode(code);
-        }
+        // Send evaluate command to the active custom editor
+        vscode.commands.executeCommand('strudel-box.evaluateActive');
       }, 500);
 
       this._state.currentTrack = relativePath;
@@ -196,9 +187,8 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
   }
 
   private _stopPlayback(): void {
-    if (StrudelBoxPanel.currentPanel) {
-      StrudelBoxPanel.currentPanel.hush();
-    }
+    // Use the hush command which stops all audio
+    vscode.commands.executeCommand('strudel-box.hush');
     this._state.isPlaying = false;
     this._sendMessage('updateState', this._state);
   }
