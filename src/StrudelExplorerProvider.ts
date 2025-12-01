@@ -167,6 +167,9 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
     if (!file) { return; }
 
     try {
+      // FIRST: Stop all currently playing audio in all tabs
+      await vscode.commands.executeCommand('strudel-box.hush');
+
       // Open the file in the custom editor (as a normal tab)
       await vscode.commands.executeCommand('vscode.openWith', file.uri, 'strudel-box.strudelEditor');
 
