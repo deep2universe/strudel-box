@@ -257,6 +257,7 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
   </style>
 </head>
 <body data-theme="tech">
+  <canvas id="animation-canvas"></canvas>
   <div class="explorer">
     <div class="header">
       <h2>🎵 Strudel Player</h2>
@@ -310,6 +311,22 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
         background: var(--vscode-sideBar-background);
         height: 100vh;
         overflow: hidden;
+        position: relative;
+      }
+
+      #animation-canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      .explorer {
+        position: relative;
+        z-index: 1;
       }
 
       /* Theme Variables */
@@ -345,6 +362,8 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
         flex-direction: column;
         height: 100%;
         padding: 8px;
+        position: relative;
+        z-index: 1;
       }
 
       .header {
@@ -708,6 +727,180 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
 
       // Initialize
       vscode.postMessage({ command: 'ready' });
+
+      // ========== THEME ANIMATIONS ==========
+      const canvas = document.getElementById('animation-canvas');
+      const ctx = canvas.getContext('2d');
+      let particles = [];
+      let animationId = null;
+
+      function resizeCanvas() {
+        canvas.width = canvas.offsetWidth;
+        canvas.height = canvas.offsetHeight;
+      }
+      resizeCanvas();
+      window.addEventListener('resize', resizeCanvas);
+
+      // Particle classes for each theme
+      class TechParticle {
+        constructor() {
+          this.reset();
+        }
+        reset() {
+          this.x = Math.random() * canvas.width;
+          this.y = Math.random() * canvas.height;
+          this.size = Math.random() * 2 + 1;
+          this.speedX = (Math.random() - 0.5) * 0.5;
+          this.speedY = (Math.random() - 0.5) * 0.5;
+          this.opacity = Math.random() * 0.5 + 0.2;
+          this.glitch = Math.random() > 0.95;
+        }
+        update() {
+          this.x += this.speedX;
+          this.y += this.speedY;
+          if (this.glitch) {
+            this.x += (Math.random() - 0.5) * 10;
+            this.glitch = Math.random() > 0.95;
+          }
+          if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) {
+            this.reset();
+          }
+        }
+        draw() {
+          ctx.fillStyle = 'rgba(0, 212, 255, ' + this.opacity + ')';
+          ctx.fillRect(this.x, this.y, this.size, this.size);
+          // Scan line effect
+          if (Math.random() > 0.99) {
+            ctx.fillStyle = 'rgba(0, 212, 255, 0.1)';
+            ctx.fillRect(0, this.y, canvas.width, 1);
+          }
+        }
+      }
+
+      class HalloweenParticle {
+        constructor() {
+          this.reset();
+          this.type = ['🎃', '👻', '🦇', '🕷️', '💀', '🕸️'][Math.floor(Math.random() * 6)];
+        }
+        reset() {
+          this.x = Math.random() * canvas.width;
+          this.y = -20;
+          this.size = Math.random() * 12 + 8;
+          this.speedY = Math.random() * 1 + 0.5;
+          this.speedX = (Math.random() - 0.5) * 0.5;
+          this.rotation = Math.random() * Math.PI * 2;
+          this.rotationSpeed = (Math.random() - 0.5) * 0.05;
+          this.wobble = Math.random() * Math.PI * 2;
+          this.wobbleSpeed = Math.random() * 0.05 + 0.02;
+        }
+        update() {
+          this.y += this.speedY;
+          this.wobble += this.wobbleSpeed;
+          this.x += Math.sin(this.wobble) * 0.5 + this.speedX;
+          this.rotation += this.rotationSpeed;
+          if (this.y > canvas.height + 20) {
+            this.reset();
+          }
+        }
+        draw() {
+          ctx.save();
+          ctx.translate(this.x, this.y);
+          ctx.rotate(this.rotation);
+          ctx.font = this.size + 'px serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(this.type, 0, 0);
+          ctx.restore();
+        }
+      }
+
+      class EightBitParticle {
+        constructor() {
+          this.reset();
+        }
+        reset() {
+          this.x = Math.random() * canvas.width;
+          this.y = -10;
+          this.size = Math.floor(Math.random() * 3 + 2) * 2;
+          this.speedY = Math.random() * 2 + 1;
+          this.color = ['#00ff41', '#00cc33', '#009926', '#33ff66'][Math.floor(Math.random() * 4)];
+          this.trail = [];
+        }
+        update() {
+          this.trail.push({ x: this.x, y: this.y });
+          if (this.trail.length > 5) this.trail.shift();
+          this.y += this.speedY;
+          if (this.y > canvas.height + 10) {
+            this.reset();
+          }
+        }
+        draw() {
+          // Draw trail
+          this.trail.forEach((pos, i) => {
+            const alpha = (i / this.trail.length) * 0.3;
+            ctx.fillStyle = this.color.replace(')', ', ' + alpha + ')').replace('rgb', 'rgba').replace('#', '');
+            ctx.globalAlpha = alpha;
+            ctx.fillRect(Math.floor(pos.x / 4) * 4, Math.floor(pos.y / 4) * 4, this.size, this.size);
+          });
+          ctx.globalAlpha = 1;
+          // Draw pixel
+          ctx.fillStyle = this.color;
+          ctx.fillRect(Math.floor(this.x / 4) * 4, Math.floor(this.y / 4) * 4, this.size, this.size);
+        }
+      }
+
+      function initParticles(theme) {
+        particles = [];
+        const count = theme === 'halloween' ? 15 : 30;
+        for (let i = 0; i < count; i++) {
+          if (theme === 'tech') {
+            particles.push(new TechParticle());
+          } else if (theme === 'halloween') {
+            particles.push(new HalloweenParticle());
+          } else if (theme === '8bit') {
+            particles.push(new EightBitParticle());
+          }
+        }
+      }
+
+      function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // CRT effect for 8bit
+        if (state.theme === '8bit') {
+          ctx.fillStyle = 'rgba(0, 255, 65, 0.02)';
+          for (let i = 0; i < canvas.height; i += 4) {
+            ctx.fillRect(0, i, canvas.width, 2);
+          }
+        }
+
+        particles.forEach(p => {
+          p.update();
+          p.draw();
+        });
+
+        animationId = requestAnimationFrame(animate);
+      }
+
+      // Start animation with current theme
+      function startAnimation() {
+        if (animationId) cancelAnimationFrame(animationId);
+        initParticles(state.theme);
+        animate();
+      }
+
+      // Watch for theme changes
+      const originalUpdateUI = updateUI;
+      updateUI = function() {
+        const prevTheme = document.body.dataset.theme;
+        originalUpdateUI();
+        if (prevTheme !== state.theme) {
+          startAnimation();
+        }
+      };
+
+      // Initial start
+      setTimeout(startAnimation, 100);
     `;
   }
 
