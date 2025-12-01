@@ -83,13 +83,77 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
       name: uri.path.split('/').pop() || '',
       uri,
       relativePath: vscode.workspace.asRelativePath(uri)
-    })).sort((a, b) => a.name.localeCompare(b.name));
+    })).sort((a, b) => a.relativePath.localeCompare(b.relativePath));
 
     this._state.playlist = this._files.map(f => f.relativePath);
-    this._sendMessage('updateFiles', this._files.map(f => ({
-      name: f.name,
-      path: f.relativePath
-    })));
+    
+    // Build tree structure from flat file list
+    const tree = this._buildFileTree(this._files);
+    this._sendMessage('updateFiles', tree);
+  }
+
+  private _buildFileTree(files: StrudelFile[]): unknown {
+    interface TreeNode {
+      name: string;
+      path: string;
+      type: 'file' | 'folder';
+      children?: TreeNode[];
+    }
+    
+    const root: TreeNode[] = [];
+    const folderMap = new Map<string, TreeNode>();
+    
+    for (const file of files) {
+      const parts = file.relativePath.split('/');
+      let currentPath = '';
+      let currentLevel = root;
+      
+      for (let i = 0; i < parts.length; i++) {
+        const part = parts[i];
+        const isFile = i === parts.length - 1;
+        currentPath = currentPath ? `${currentPath}/${part}` : part;
+        
+        if (isFile) {
+          // Add file to current level
+          currentLevel.push({
+            name: part,
+            path: file.relativePath,
+            type: 'file'
+          });
+        } else {
+          // Check if folder already exists
+          let folder = folderMap.get(currentPath);
+          if (!folder) {
+            folder = {
+              name: part,
+              path: currentPath,
+              type: 'folder',
+              children: []
+            };
+            folderMap.set(currentPath, folder);
+            currentLevel.push(folder);
+          }
+          currentLevel = folder.children!;
+        }
+      }
+    }
+    
+    // Sort: folders first, then files, both alphabetically
+    const sortNodes = (nodes: TreeNode[]): TreeNode[] => {
+      return nodes.sort((a, b) => {
+        if (a.type !== b.type) {
+          return a.type === 'folder' ? -1 : 1;
+        }
+        return a.name.localeCompare(b.name);
+      }).map(node => {
+        if (node.children) {
+          node.children = sortNodes(node.children);
+        }
+        return node;
+      });
+    };
+    
+    return sortNodes(root);
   }
 
   private async _handleMessage(message: { command: string; payload?: unknown }): Promise<void> {
@@ -501,10 +565,59 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
         overflow-x: hidden;
       }
 
+      .tree-item {
+        user-select: none;
+      }
+
+      .folder-header {
+        display: flex;
+        align-items: center;
+        padding: 4px 8px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background 0.15s;
+        gap: 6px;
+      }
+
+      .folder-header:hover {
+        background: var(--file-hover);
+      }
+
+      .folder-chevron {
+        width: 16px;
+        font-size: 10px;
+        color: var(--vscode-descriptionForeground);
+        transition: transform 0.15s;
+      }
+
+      .folder-header.expanded .folder-chevron {
+        transform: rotate(90deg);
+      }
+
+      .folder-icon {
+        font-size: 14px;
+      }
+
+      .folder-name {
+        flex: 1;
+        font-size: 12px;
+        font-weight: 500;
+      }
+
+      .folder-children {
+        display: none;
+        padding-left: 12px;
+      }
+
+      .folder-children.expanded {
+        display: block;
+      }
+
       .file-item {
         display: flex;
         align-items: center;
-        padding: 6px 8px;
+        padding: 4px 8px;
+        padding-left: 30px;
         border-radius: 4px;
         cursor: pointer;
         transition: background 0.15s;
@@ -521,12 +634,12 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
       }
 
       .file-icon {
-        width: 20px;
-        height: 20px;
+        width: 18px;
+        height: 18px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 10px;
+        font-size: 9px;
         font-weight: bold;
         border: 1.5px solid var(--icon-color);
         border-radius: 3px;
@@ -778,25 +891,75 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
         }
       });
 
+      // Track expanded folders
+      let expandedFolders = new Set();
+      
       function renderFileList() {
-        if (files.length === 0) {
+        if (!files || files.length === 0) {
           fileList.innerHTML = '<div class="empty-state">No .strudel files found</div>';
           return;
         }
 
-        fileList.innerHTML = files.map(file => \`
-          <div class="file-item \${state.currentTrack === file.path ? 'playing' : ''}" data-path="\${file.path}">
-            \${state.currentTrack === file.path && state.isPlaying ? '<div class="playing-indicator"></div>' : '<div class="file-icon">S</div>'}
-            <span class="file-name" title="\${file.path}">\${file.name}</span>
-            <div class="file-actions">
-              <button class="file-action-btn play-file-btn" title="Play">▶</button>
-              <button class="file-action-btn link-btn" title="Open in Strudel.cc">🔗</button>
-              <button class="file-action-btn edit-btn" title="Open in Editor">📝</button>
-            </div>
-          </div>
-        \`).join('');
-
-        // Add click handlers
+        fileList.innerHTML = renderTreeNodes(files, 0);
+        attachTreeEventHandlers();
+      }
+      
+      function renderTreeNodes(nodes, depth) {
+        return nodes.map(node => {
+          if (node.type === 'folder') {
+            const isExpanded = expandedFolders.has(node.path);
+            return \`
+              <div class="tree-item" data-folder-path="\${node.path}">
+                <div class="folder-header \${isExpanded ? 'expanded' : ''}" data-folder="\${node.path}">
+                  <span class="folder-chevron">▶</span>
+                  <span class="folder-icon">\${isExpanded ? '📂' : '📁'}</span>
+                  <span class="folder-name">\${node.name}</span>
+                </div>
+                <div class="folder-children \${isExpanded ? 'expanded' : ''}" data-folder-children="\${node.path}">
+                  \${node.children ? renderTreeNodes(node.children, depth + 1) : ''}
+                </div>
+              </div>
+            \`;
+          } else {
+            const isPlaying = state.currentTrack === node.path;
+            return \`
+              <div class="file-item \${isPlaying ? 'playing' : ''}" data-path="\${node.path}">
+                \${isPlaying && state.isPlaying ? '<div class="playing-indicator"></div>' : '<div class="file-icon">S</div>'}
+                <span class="file-name" title="\${node.path}">\${node.name}</span>
+                <div class="file-actions">
+                  <button class="file-action-btn play-file-btn" title="Play">▶</button>
+                  <button class="file-action-btn link-btn" title="Open in Strudel.cc">🔗</button>
+                  <button class="file-action-btn edit-btn" title="Open in Editor">📝</button>
+                </div>
+              </div>
+            \`;
+          }
+        }).join('');
+      }
+      
+      function attachTreeEventHandlers() {
+        // Folder toggle handlers
+        fileList.querySelectorAll('.folder-header').forEach(header => {
+          header.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const folderPath = header.dataset.folder;
+            const children = fileList.querySelector('[data-folder-children="' + folderPath + '"]');
+            
+            if (expandedFolders.has(folderPath)) {
+              expandedFolders.delete(folderPath);
+              header.classList.remove('expanded');
+              children.classList.remove('expanded');
+              header.querySelector('.folder-icon').textContent = '📁';
+            } else {
+              expandedFolders.add(folderPath);
+              header.classList.add('expanded');
+              children.classList.add('expanded');
+              header.querySelector('.folder-icon').textContent = '📂';
+            }
+          });
+        });
+        
+        // File handlers
         fileList.querySelectorAll('.file-item').forEach(item => {
           const path = item.dataset.path;
           
