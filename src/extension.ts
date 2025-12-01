@@ -210,10 +210,6 @@ class StrudelEditorProvider implements vscode.CustomTextEditorProvider {
         <div id="editor"></div>
       </div>
       
-      <div id="visualizer-container">
-        <canvas id="visualizer"></canvas>
-      </div>
-      
       <div id="controls">
         <button id="play" class="btn btn-play">▶ Play</button>
         <button id="stop" class="btn btn-stop">⏹ Stop</button>

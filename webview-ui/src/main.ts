@@ -5,7 +5,7 @@
 
 import { postMessage, saveState, getState } from './vscode';
 import { ParticleSystem, ThemeType } from './particles';
-import { Visualizer } from './visualizer';
+// Visualizer removed - not needed for this extension
 import { createEditor, setCode, getCode } from './editor';
 import { 
   loadDefaultSamples, 
@@ -52,7 +52,6 @@ declare global {
 let editor: EditorView | null = null;
 let repl: StrudelREPL | null = null;
 let particleSystem: ParticleSystem | null = null;
-let visualizer: Visualizer | null = null;
 let currentTheme: ThemeType = 'default';
 let strudelReady = false;
 
@@ -156,35 +155,6 @@ function initEditor(): void {
 }
 
 // =============================================================================
-// Visualizer Integration
-// =============================================================================
-
-function initVisualizer(): void {
-  const canvas = document.getElementById('visualizer') as HTMLCanvasElement;
-  if (!canvas) {
-    console.warn('[STRUDEL-BOX] Visualizer canvas not found');
-    return;
-  }
-  
-  visualizer = new Visualizer(canvas);
-  visualizer.start();
-}
-
-function connectVisualizerToAudio(): void {
-  if (!visualizer || !repl) return;
-  
-  try {
-    const audioContext = repl.scheduler?.audioContext;
-    if (audioContext) {
-      visualizer.connect(audioContext);
-      console.log('[STRUDEL-BOX] Visualizer connected');
-    }
-  } catch (err) {
-    console.warn('[STRUDEL-BOX] Could not connect visualizer:', err);
-  }
-}
-
-// =============================================================================
 // Audio Controls
 // =============================================================================
 
@@ -223,7 +193,6 @@ async function playPattern(code?: string): Promise<void> {
     await repl.evaluate(patternCode);
     updateStatus('▶ Playing', 'playing');
     addLog('Pattern playing', 'success');
-    connectVisualizerToAudio();
     saveCurrentState();
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);
@@ -394,7 +363,6 @@ async function init(): Promise<void> {
   setupKeyboardShortcuts();
   setupThemeSwitcher();
   setupControls();
-  initVisualizer();
   
   // Initialize editor first (shows UI immediately)
   initEditor();
