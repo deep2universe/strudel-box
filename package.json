@@ -42,13 +42,21 @@
         "title": "Strudel Box: Open File Explorer"
       }
     ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "strudel-player",
+          "title": "Strudel Player",
+          "icon": "icons/strudel-activity-bar.svg"
+        }
+      ]
+    },
     "views": {
-      "explorer": [
+      "strudel-player": [
         {
           "type": "webview",
           "id": "strudel-box.explorer",
           "name": "Strudel Player",
-          "icon": "$(music)",
           "contextualTitle": "Strudel Player"
         }
       ]
