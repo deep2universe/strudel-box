@@ -171,10 +171,20 @@ function initEditor(): void {
   const savedState = getState<AppState>();
   const initialCode = savedState?.code || window.INITIAL_CODE || DEFAULT_CODE;
   
-  // Create CodeMirror editor
-  editor = createEditor(container, initialCode, async (code) => {
-    await playPattern(code);
-  });
+  // Create CodeMirror editor with evaluate and save callbacks
+  editor = createEditor(
+    container, 
+    initialCode, 
+    async (code) => {
+      await playPattern(code);
+    },
+    (code) => {
+      // Save callback - send to extension
+      postMessage('saveCode', code);
+      saveCurrentState();
+      addLog('Code saved', 'success');
+    }
+  );
   
   console.log('[STRUDEL-BOX] Editor initialized');
 }

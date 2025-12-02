@@ -8,6 +8,7 @@ import { javascript } from '@codemirror/lang-javascript';
 import { keymap } from '@codemirror/view';
 
 type EvaluateCallback = (code: string) => void;
+type SaveCallback = (code: string) => void;
 
 /**
  * Create a CodeMirror editor instance
@@ -15,7 +16,8 @@ type EvaluateCallback = (code: string) => void;
 export function createEditor(
   parent: HTMLElement,
   initialCode: string,
-  onEvaluate: EvaluateCallback
+  onEvaluate: EvaluateCallback,
+  onSave?: SaveCallback
 ): EditorView {
   
   // Custom keymap for Strudel - with highest priority
@@ -37,6 +39,22 @@ export function createEditor(
         console.log('[STRUDEL-EDITOR] Cmd/Ctrl+. pressed - hushing');
         window.dispatchEvent(new CustomEvent('strudel-hush'));
         return true;
+      },
+      preventDefault: true
+    },
+    {
+      key: 'Ctrl-s',
+      mac: 'Cmd-s',
+      run: (view) => {
+        console.log('[STRUDEL-EDITOR] Cmd/Ctrl+S pressed - saving');
+        if (onSave) {
+          onSave(view.state.doc.toString());
+        } else {
+          window.dispatchEvent(new CustomEvent('strudel-save', { 
+            detail: view.state.doc.toString() 
+          }));
+        }
+        return true; // Prevent VS Code from handling it
       },
       preventDefault: true
     }

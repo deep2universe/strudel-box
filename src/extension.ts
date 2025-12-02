@@ -183,6 +183,9 @@ class StrudelEditorProvider implements vscode.CustomTextEditorProvider {
     // Set HTML content
     webviewPanel.webview.html = this.getHtmlForWebview(webviewPanel.webview, document.getText());
 
+    // Flag to prevent reload loop during save
+    let isSaving = false;
+
     // Handle messages from webview
     webviewPanel.webview.onDidReceiveMessage(async (message) => {
       switch (message.command) {
@@ -190,15 +193,22 @@ class StrudelEditorProvider implements vscode.CustomTextEditorProvider {
           webviewPanel.webview.postMessage({ command: 'loadCode', payload: document.getText() });
           break;
         case 'saveCode':
-          const edit = new vscode.WorkspaceEdit();
-          edit.replace(
-            document.uri,
-            new vscode.Range(0, 0, document.lineCount, 0),
-            message.payload
-          );
-          await vscode.workspace.applyEdit(edit);
-          // Actually save the document to disk
-          await document.save();
+          isSaving = true;
+          try {
+            const edit = new vscode.WorkspaceEdit();
+            edit.replace(
+              document.uri,
+              new vscode.Range(0, 0, document.lineCount, 0),
+              message.payload
+            );
+            await vscode.workspace.applyEdit(edit);
+            // Actually save the document to disk
+            await document.save();
+            vscode.window.showInformationMessage(`Saved: ${vscode.workspace.asRelativePath(document.uri)}`);
+          } finally {
+            // Reset flag after a short delay to allow document change events to settle
+            setTimeout(() => { isSaving = false; }, 100);
+          }
           break;
         case 'error':
           vscode.window.showErrorMessage(`Strudel Box: ${message.payload}`);
@@ -206,9 +216,10 @@ class StrudelEditorProvider implements vscode.CustomTextEditorProvider {
       }
     });
 
-    // Update webview when document changes
+    // Update webview when document changes externally (not from our save)
     const changeDocumentSubscription = vscode.workspace.onDidChangeTextDocument((e) => {
-      if (e.document.uri.toString() === document.uri.toString()) {
+      if (e.document.uri.toString() === document.uri.toString() && !isSaving) {
+        // Only reload if change came from outside (e.g., git checkout, external editor)
         webviewPanel.webview.postMessage({ command: 'loadCode', payload: document.getText() });
       }
     });
