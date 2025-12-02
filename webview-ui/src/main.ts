@@ -5,8 +5,11 @@
 
 import { postMessage, saveState, getState } from './vscode';
 import { ParticleSystem, ThemeType } from './particles';
-// Visualizer removed - not needed for this extension
+import { AudioVisualizerPanel, interceptAudioDestination } from './audioVisualizer';
 import { createEditor, setCode, getCode } from './editor';
+
+// IMPORTANT: Install audio intercept BEFORE Strudel loads
+interceptAudioDestination();
 import { 
   loadDefaultSamples, 
   areSamplesLoaded, 
@@ -31,9 +34,15 @@ interface StrudelREPL {
   };
 }
 
+interface VisualizerState {
+  collapsed: boolean;
+  mode: 'both' | 'oscilloscope' | 'spectrum';
+}
+
 interface AppState {
   theme: ThemeType;
   code?: string;
+  visualizer?: VisualizerState;
 }
 
 declare global {
@@ -52,6 +61,7 @@ declare global {
 let editor: EditorView | null = null;
 let repl: StrudelREPL | null = null;
 let particleSystem: ParticleSystem | null = null;
+let audioVisualizer: AudioVisualizerPanel | null = null;
 let currentTheme: ThemeType = 'default';
 let strudelReady = false;
 
@@ -118,6 +128,21 @@ async function initStrudel(): Promise<void> {
     strudelReady = true;
     
     console.log('[STRUDEL-BOX] Strudel ready:', Object.keys(repl));
+    
+    // Connect audio visualizer to AudioContext using Strudel's global
+    const win = window as unknown as { getAudioContext?: () => AudioContext };
+    if (audioVisualizer && win.getAudioContext) {
+      try {
+        const audioCtx = win.getAudioContext();
+        audioVisualizer.connect(audioCtx);
+        console.log('[STRUDEL-BOX] Audio visualizer connected to AudioContext');
+      } catch (e) {
+        console.warn('[STRUDEL-BOX] Could not connect visualizer:', e);
+      }
+    } else if (audioVisualizer && repl.scheduler?.audioContext) {
+      audioVisualizer.connect(repl.scheduler.audioContext);
+      console.log('[STRUDEL-BOX] Audio visualizer connected via scheduler');
+    }
     
     // NOW load samples (after initStrudel made window.samples available)
     await loadSamples();
@@ -193,6 +218,12 @@ async function playPattern(code?: string): Promise<void> {
     await repl.evaluate(patternCode);
     updateStatus('▶ Playing', 'playing');
     addLog('Pattern playing', 'success');
+    
+    // Start audio visualizer
+    if (audioVisualizer) {
+      audioVisualizer.start();
+    }
+    
     saveCurrentState();
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);
@@ -210,6 +241,9 @@ function stopPattern(): void {
     updateStatus('⏹ Stopped', 'stopped');
     console.log('[STRUDEL-BOX] Pattern stopped');
     addLog('Pattern stopped', 'info');
+    
+    // Stop audio visualizer animation
+    audioVisualizer?.stop();
   } catch (err) {
     console.error('[STRUDEL-BOX] Stop error:', err);
   }
@@ -255,6 +289,9 @@ function saveCurrentState(): void {
   const state: AppState = { theme: currentTheme };
   if (editor) {
     state.code = getCode(editor);
+  }
+  if (audioVisualizer) {
+    state.visualizer = audioVisualizer.getState();
   }
   saveState(state);
 }
@@ -376,6 +413,17 @@ async function init(): Promise<void> {
   
   // Initialize editor first (shows UI immediately)
   initEditor();
+  
+  // Initialize audio visualizer panel (after editor, before controls)
+  const mainElement = document.querySelector('main');
+  if (mainElement) {
+    audioVisualizer = new AudioVisualizerPanel(mainElement, saveCurrentState);
+    
+    // Restore visualizer state
+    if (savedState?.visualizer) {
+      audioVisualizer.setState(savedState.visualizer);
+    }
+  }
   
   // Initialize log panel and connect to sample loader
   initLogPanel();
