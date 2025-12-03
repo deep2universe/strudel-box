@@ -6,7 +6,7 @@
 
 **Code your beats. Visualize your sound. Share your vibe.**
 
-strudel-box is a VS Code extension that brings the power of [Strudel](https://strudel.cc) live coding directly into your editor. Create algorithmic music patterns, experiment with sounds, and perform live — all without leaving VS Code.
+[strudel-box](https://marketplace.visualstudio.com/items?itemName=deep2universe.strudel-box) is a VS Code extension that brings the power of [Strudel](https://strudel.cc) live coding directly into your editor. Create algorithmic music patterns, experiment with sounds, and perform live — all without leaving VS Code.
 
 ![strudel-box Screenshot](https://raw.githubusercontent.com/deep2universe/strudel-box/refs/heads/main/assets/strudel-box-01.png)
 
