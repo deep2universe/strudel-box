@@ -75,6 +75,8 @@ check_command() {
 # =============================================================================
 
 check_prerequisites() {
+    local target="${1:-all}"  # all, vscode, openvsx, or build
+    
     log_info "Checking prerequisites..."
     
     local missing=0
@@ -99,7 +101,7 @@ check_prerequisites() {
         missing=1
     fi
     
-    # Check vsce
+    # Check vsce (needed for build and vscode publish)
     if check_command vsce; then
         log_success "vsce $(vsce --version)"
     else
@@ -107,21 +109,29 @@ check_prerequisites() {
         missing=1
     fi
     
-    # Check ovsx
-    if check_command ovsx; then
-        log_success "ovsx $(ovsx --version)"
-    else
-        log_warning "ovsx not found. Install with: npm install -g ovsx"
-        missing=1
+    # Check ovsx only if needed for openvsx or full publish
+    if [ "$target" = "all" ] || [ "$target" = "openvsx" ]; then
+        if check_command ovsx; then
+            log_success "ovsx $(ovsx --version)"
+        else
+            log_warning "ovsx not found. Install with: npm install -g ovsx"
+            if [ "$target" = "openvsx" ]; then
+                missing=1
+            fi
+        fi
     fi
     
-    # Check for tokens (only warn, don't fail)
-    if [ -z "$VSCE_PAT" ]; then
-        log_warning "VSCE_PAT environment variable not set (needed for VS Code Marketplace)"
+    # Check for tokens based on target
+    if [ "$target" = "all" ] || [ "$target" = "vscode" ]; then
+        if [ -z "$VSCE_PAT" ]; then
+            log_warning "VSCE_PAT environment variable not set (needed for VS Code Marketplace)"
+        fi
     fi
     
-    if [ -z "$OVSX_PAT" ]; then
-        log_warning "OVSX_PAT environment variable not set (needed for Open VSX)"
+    if [ "$target" = "all" ] || [ "$target" = "openvsx" ]; then
+        if [ -z "$OVSX_PAT" ]; then
+            log_warning "OVSX_PAT environment variable not set (needed for Open VSX)"
+        fi
     fi
     
     return $missing
@@ -391,20 +401,20 @@ print_usage() {
 
 case "${1:-build}" in
     build)
-        check_prerequisites || exit 1
+        check_prerequisites "build" || exit 1
         full_build
         ;;
     publish)
-        check_prerequisites || exit 1
+        check_prerequisites "all" || exit 1
         full_publish
         ;;
     vscode)
-        check_prerequisites || exit 1
+        check_prerequisites "vscode" || exit 1
         full_build || exit 1
         publish_vscode
         ;;
     openvsx)
-        check_prerequisites || exit 1
+        check_prerequisites "openvsx" || exit 1
         full_build || exit 1
         publish_openvsx
         ;;
@@ -412,7 +422,7 @@ case "${1:-build}" in
         clean
         ;;
     check)
-        check_prerequisites
+        check_prerequisites "all"
         echo ""
         verify_package
         ;;
