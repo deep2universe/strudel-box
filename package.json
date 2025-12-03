@@ -1,13 +1,45 @@
 {
   "name": "strudel-box",
-  "displayName": "strudel_box",
-  "description": "Code your beats. Visualize your sound. Share your vibe.",
-  "version": "0.0.1",
+  "displayName": "strudel-box",
+  "description": "Live code music patterns in VS Code. Create algorithmic beats with real-time audio, stunning visuals, and zero setup.",
+  "version": "0.1.0",
+  "publisher": "deep2universe",
+  "author": {
+    "name": "deep2universe",
+    "url": "https://github.com/deep2universe"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/deep2universe/strudel-box"
+  },
+  "bugs": {
+    "url": "https://github.com/deep2universe/strudel-box/issues"
+  },
+  "homepage": "https://github.com/deep2universe/strudel-box#readme",
+  "icon": "assets/logo-marktplace_128.png",
+  "galleryBanner": {
+    "color": "#1a1a2e",
+    "theme": "dark"
+  },
+  "keywords": [
+    "music",
+    "live-coding",
+    "strudel",
+    "audio",
+    "pattern",
+    "algorithmic",
+    "creative-coding",
+    "synthesizer",
+    "beats",
+    "generative"
+  ],
   "engines": {
     "vscode": "^1.74.0"
   },
   "categories": [
-    "Other"
+    "Other",
+    "Visualization"
   ],
   "activationEvents": [],
   "main": "./dist/extension.js",

@@ -1,14 +1,48 @@
+# Development files
 .vscode/**
 .vscode-test/**
-out/**
-node_modules/**
+.kiro/**
+.git/**
+.github/**
+
+# Source files (compiled to dist/)
 src/**
-.gitignore
-.yarnrc
+out/**
+
+# Webview source (compiled to webview-ui/dist/)
+webview-ui/src/**
+webview-ui/node_modules/**
+webview-ui/package-lock.json
+webview-ui/tsconfig.json
+webview-ui/vite.config.ts
+
+# Build tools
+node_modules/**
 esbuild.js
-vsc-extension-quickstart.md
+eslint.config.mjs
 **/tsconfig.json
-**/eslint.config.mjs
 **/*.map
 **/*.ts
+!**/*.d.ts
+
+# Documentation (not needed in extension)
+dev_docs/**
+*.md
+!README.md
+!CHANGELOG.md
+
+# Test files
 **/.vscode-test.*
+.vscode-test.mjs
+
+# Config files
+.gitignore
+.yarnrc
+.DS_Store
+
+# Specification files
+Strudel-Box-Implementation-Specification-v5-Final.md
+vsc-extension-quickstart.md
+
+# Scripts
+scripts/**
