@@ -1,10 +1,26 @@
-# 🎵 Strudel Box
+# 🎵 strudel-box
+
+[![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/deep2universe.strudel-box?style=flat-square&label=VS%20Code%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=deep2universe.strudel-box)
+[![Open VSX](https://img.shields.io/open-vsx/v/deep2universe/strudel-box?style=flat-square&label=Open%20VSX)](https://open-vsx.org/extension/deep2universe/strudel-box)
+[![License](https://img.shields.io/github/license/deep2universe/strudel-box?style=flat-square)](LICENSE)
 
 **Code your beats. Visualize your sound. Share your vibe.**
 
-Strudel Box is a VS Code extension that brings the power of [Strudel](https://strudel.cc) live coding directly into your editor. Create algorithmic music patterns, experiment with sounds, and perform live — all without leaving VS Code.
+strudel-box is a VS Code extension that brings the power of [Strudel](https://strudel.cc) live coding directly into your editor. Create algorithmic music patterns, experiment with sounds, and perform live — all without leaving VS Code.
 
-![Strudel Box Screenshot](images/screenshot.png)
+![strudel-box Screenshot](assets/strudel-box-01.png)
+
+---
+
+## 🤖 Works in VS Code — Built for Kiro
+
+strudel-box is fully compatible with VS Code and works out of the box. However, it was developed for and with [Kiro](https://kiro.dev), AWS's agentic IDE. When used with Kiro, you unlock powerful AI-assisted features:
+
+| Feature | Description |
+|---------|-------------|
+| **Spec-Driven Development** | Use Kiro's structured specs to design and iterate on complex musical patterns with AI guidance |
+| **Vibe Coding** | Let AI help you explore new sounds, suggest pattern variations, and remix your beats in real-time |
+| **Kiro Template** | Get started instantly with our [strudel-box-template](https://github.com/deep2universe/strudel-box-template) — pre-configured steering rules, example patterns, and AI prompts for music creation |
 
 ---
 
@@ -337,6 +353,8 @@ Files with `.strudel` extension are automatically:
 
 ## 📚 Resources
 
+- [Kiro IDE](https://kiro.dev) — AI-powered IDE for spec-driven development
+- [strudel-box-template](https://github.com/deep2universe/strudel-box-template) — Kiro template for music creation
 - [Strudel Documentation](https://strudel.cc/learn)
 - [Strudel Pattern Reference](https://strudel.cc/reference)
 - [TidalCycles (inspiration)](https://tidalcycles.org)
