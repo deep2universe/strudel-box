@@ -6,6 +6,7 @@
 import * as vscode from 'vscode';
 import { StrudelBoxPanel } from './StrudelBoxPanel';
 import { StrudelExplorerProvider } from './StrudelExplorerProvider';
+import { SampleBrowserProvider } from './SampleBrowserProvider';
 
 export function activate(context: vscode.ExtensionContext) {
   console.log('[STRUDEL-BOX] Extension activated');
@@ -15,6 +16,13 @@ export function activate(context: vscode.ExtensionContext) {
   const explorerView = vscode.window.registerWebviewViewProvider(
     StrudelExplorerProvider.viewType,
     explorerProvider
+  );
+
+  // Register Sample Browser (Sidebar Sample Pack Discovery)
+  const sampleBrowserProvider = new SampleBrowserProvider(context.extensionUri);
+  const sampleBrowserView = vscode.window.registerWebviewViewProvider(
+    SampleBrowserProvider.viewType,
+    sampleBrowserProvider
   );
 
   // Command: Open Strudel Box
@@ -102,6 +110,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     explorerView,
+    sampleBrowserView,
     openCommand,
     focusExplorerCommand,
     hushCommand,
