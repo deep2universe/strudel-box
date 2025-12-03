@@ -1,0 +1,145 @@
+# Implementation Plan
+
+- [ ] 1. Set up project structure and data models
+  - [ ] 1.1 Create sample pack data file with TypeScript interfaces
+    - Define `SamplePack`, `SampleCategory`, `CategoryInfo` interfaces
+    - Create `SAMPLE_PACKS` array with all sample packs from the provided list
+    - Create `CATEGORIES` array with category metadata
+    - _Requirements: 8.1, 8.3_
+  - [ ]* 1.2 Write property test for pack data structure
+    - **Property 1: Pack Rendering Completeness**
+    - **Validates: Requirements 1.4, 2.3, 8.2, 8.3**
+  - [ ] 1.3 Create utility functions for sample pack operations
+    - Implement `filterPacks(packs, query)` function
+    - Implement `groupByCategory(packs)` function
+    - Implement `generateCopySnippet(url)` function
+    - _Requirements: 2.1, 4.1, 4.2_
+  - [ ]* 1.4 Write property tests for utility functions
+    - **Property 4: Copy Snippet Format**
+    - **Property 5: Search Filter Correctness**
+    - **Property 6: Empty Search Restoration**
+    - **Validates: Requirements 2.1, 4.1, 4.2, 4.3**
+
+- [ ] 2. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 3. Create SampleBrowserProvider extension component
+  - [ ] 3.1 Create SampleBrowserProvider class
+    - Implement `WebviewViewProvider` interface
+    - Set up webview options and CSP
+    - Register in `extension.ts`
+    - _Requirements: 1.1_
+  - [ ] 3.2 Add view contribution to package.json
+    - Add new view to `strudel-player` container
+    - Configure view properties
+    - _Requirements: 1.1_
+  - [ ] 3.3 Implement message handling
+    - Handle `ready`, `setTheme`, `loadPack`, `copyUrl` messages
+    - Send state updates to webview
+    - _Requirements: 5.2, 7.1_
+
+- [ ] 4. Build Sample Browser webview UI
+  - [ ] 4.1 Create HTML structure and base styles
+    - Header with title and theme buttons
+    - Search input field
+    - Categorized pack list container
+    - Theme-specific CSS variables (tech, halloween, 8bit)
+    - _Requirements: 1.1, 4.1, 5.1_
+  - [ ] 4.2 Implement category rendering with expand/collapse
+    - Render category headers with icons
+    - Toggle expanded state on click
+    - Show/hide pack items based on state
+    - _Requirements: 1.2, 1.3_
+  - [ ]* 4.3 Write property test for category toggle
+    - **Property 3: Category Toggle State**
+    - **Validates: Requirements 1.3**
+  - [ ] 4.4 Implement sample pack item rendering
+    - Display pack name, URL, sample count
+    - Add copy button, preview button, load button
+    - Show loaded/playing indicators
+    - _Requirements: 1.4, 2.3, 3.2, 7.2, 7.3_
+  - [ ]* 4.5 Write property tests for pack rendering
+    - **Property 2: Category Grouping Correctness**
+    - **Property 8: Playing State Indicator**
+    - **Property 9: Loaded State Display**
+    - **Validates: Requirements 1.2, 3.2, 7.2, 7.3**
+
+- [ ] 5. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 6. Implement search functionality
+  - [ ] 6.1 Add search input event handling
+    - Debounce input for performance
+    - Filter packs on each keystroke
+    - Update displayed list
+    - _Requirements: 4.1_
+  - [ ] 6.2 Implement filter logic integration
+    - Match against name, category, URL
+    - Handle empty results state
+    - Clear search restores full list
+    - _Requirements: 4.2, 4.3, 4.4_
+
+- [ ] 7. Implement copy-to-clipboard functionality
+  - [ ] 7.1 Add copy button click handler
+    - Generate `samples('...')` snippet
+    - Copy to clipboard via navigator.clipboard API
+    - Show visual confirmation
+    - _Requirements: 2.1, 2.2_
+
+- [ ] 8. Implement theme system
+  - [ ] 8.1 Add theme button click handlers
+    - Apply theme to body data-theme attribute
+    - Update active button state
+    - Save theme to state
+    - _Requirements: 5.2_
+  - [ ] 8.2 Integrate particle system
+    - Embed particle system code in webview
+    - Initialize on panel load
+    - Update on theme change
+    - Stop on panel hide
+    - _Requirements: 6.1, 6.2, 6.3_
+  - [ ]* 8.3 Write property test for animation lifecycle
+    - **Property 10: Animation Lifecycle**
+    - **Validates: Requirements 6.3**
+  - [ ] 8.4 Implement state persistence
+    - Save theme to webview state
+    - Restore on panel reopen
+    - _Requirements: 5.4_
+  - [ ]* 8.5 Write property test for theme persistence
+    - **Property 7: Theme State Persistence**
+    - **Validates: Requirements 5.4**
+
+- [ ] 9. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 10. Implement audio preview functionality
+  - [ ] 10.1 Initialize Strudel audio engine in webview
+    - Load Strudel from CDN
+    - Initialize REPL on first preview click
+    - Handle AudioContext suspended state
+    - _Requirements: 3.1_
+  - [ ] 10.2 Implement preview playback
+    - Load sample pack on preview click
+    - Play representative sample
+    - Toggle stop on second click
+    - Update playing state indicator
+    - _Requirements: 3.1, 3.2, 3.3_
+  - [ ] 10.3 Implement error handling for preview
+    - Catch load failures
+    - Display error message
+    - Prevent crashes
+    - _Requirements: 3.4_
+
+- [ ] 11. Implement sample pack loading
+  - [ ] 11.1 Add load button click handler
+    - Call samples() with pack URL
+    - Track loaded state
+    - Update UI to show loaded badge
+    - _Requirements: 7.1, 7.2, 7.3_
+  - [ ] 11.2 Implement load error handling
+    - Catch and display errors
+    - Show failure reason
+    - _Requirements: 7.4_
+
+- [ ] 12. Final Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
