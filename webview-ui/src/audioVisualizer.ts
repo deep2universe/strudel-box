@@ -3,6 +3,9 @@
  * Uses destination interception to capture all audio
  */
 
+// Debug flag for this file
+const DEBUG = false;
+
 type VisualizerMode = 'both' | 'oscilloscope' | 'spectrum';
 
 interface VisualizerState {
@@ -52,7 +55,7 @@ function getOrCreateAnalyser(ctx: AudioContext): AnalyserNode {
     
     contextAnalysers.set(ctx, analyser);
     globalAnalyser = analyser;
-    console.log('[AUDIO-VISUALIZER] Created analyser for AudioContext');
+    if (DEBUG) console.log('[AUDIO-VISUALIZER] Created analyser for AudioContext');
   }
   return analyser;
 }
@@ -64,7 +67,7 @@ function getOrCreateAnalyser(ctx: AudioContext): AnalyserNode {
 export function interceptAudioDestination(): void {
   if (isIntercepted) return;
   
-  console.log('[AUDIO-VISUALIZER] Setting up destination intercept...');
+  if (DEBUG) console.log('[AUDIO-VISUALIZER] Setting up destination intercept...');
 
   // Store the original connect function ONCE
   originalConnectFn = AudioNode.prototype.connect as typeof originalConnectFn;
@@ -87,7 +90,7 @@ export function interceptAudioDestination(): void {
       const analyser = getOrCreateAnalyser(ctx);
       
       // Route through our analyser instead of destination
-      console.log('[AUDIO-VISUALIZER] Intercepted connection to destination');
+      if (DEBUG) console.log('[AUDIO-VISUALIZER] Intercepted connection to destination');
       return originalConnectFn!.call(this, analyser, outputIndex, inputIndex);
     }
     
@@ -96,7 +99,7 @@ export function interceptAudioDestination(): void {
   };
   
   isIntercepted = true;
-  console.log('[AUDIO-VISUALIZER] Destination intercept installed');
+  if (DEBUG) console.log('[AUDIO-VISUALIZER] Destination intercept installed');
 }
 
 /**
@@ -250,22 +253,22 @@ export class AudioVisualizerPanel {
    * Call this when Strudel is ready
    */
   connect(audioContext: AudioContext): void {
-    console.log('[AUDIO-VISUALIZER] Connecting to AudioContext...');
+    if (DEBUG) console.log('[AUDIO-VISUALIZER] Connecting to AudioContext...');
     
     // Use the global analyser created by the intercept, or create one
     if (globalAnalyser && globalAnalyser.context === audioContext) {
       this.analyser = globalAnalyser;
-      console.log('[AUDIO-VISUALIZER] Using existing intercepted analyser');
+      if (DEBUG) console.log('[AUDIO-VISUALIZER] Using existing intercepted analyser');
     } else {
       // Create analyser for this context
       this.analyser = getOrCreateAnalyser(audioContext);
-      console.log('[AUDIO-VISUALIZER] Created new analyser for context');
+      if (DEBUG) console.log('[AUDIO-VISUALIZER] Created new analyser for context');
     }
     
     this.timeDataArray = new Uint8Array(this.analyser.fftSize);
     this.freqDataArray = new Uint8Array(this.analyser.frequencyBinCount);
     
-    console.log('[AUDIO-VISUALIZER] Analyser ready, fftSize:', this.analyser.fftSize);
+    if (DEBUG) console.log('[AUDIO-VISUALIZER] Analyser ready, fftSize:', this.analyser.fftSize);
   }
 
   /**
@@ -277,7 +280,7 @@ export class AudioVisualizerPanel {
     if (win.strudel?.analysers) {
       // Try to find an active analyser
       const analyserKeys = Object.keys(win.strudel.analysers);
-      console.log('[AUDIO-VISUALIZER] Found Strudel analysers:', analyserKeys);
+      if (DEBUG) console.log('[AUDIO-VISUALIZER] Found Strudel analysers:', analyserKeys);
       
       // Use 'main' or first available
       const key = analyserKeys.includes('main') ? 'main' : analyserKeys[0];
@@ -285,13 +288,13 @@ export class AudioVisualizerPanel {
         this.analyser = win.strudel.analysers[key];
         this.timeDataArray = new Uint8Array(this.analyser.fftSize);
         this.freqDataArray = new Uint8Array(this.analyser.frequencyBinCount);
-        console.log('[AUDIO-VISUALIZER] Using Strudel analyser:', key);
+        if (DEBUG) console.log('[AUDIO-VISUALIZER] Using Strudel analyser:', key);
       }
     }
   }
 
   start(): void {
-    console.log('[AUDIO-VISUALIZER] start() called');
+    if (DEBUG) console.log('[AUDIO-VISUALIZER] start() called');
     this.isPlaying = true;
     
     if (!this.collapsed) {
@@ -300,14 +303,14 @@ export class AudioVisualizerPanel {
   }
 
   stop(): void {
-    console.log('[AUDIO-VISUALIZER] stop() called');
+    if (DEBUG) console.log('[AUDIO-VISUALIZER] stop() called');
     this.isPlaying = false;
     this.stopAnimation();
   }
 
   private startAnimation(): void {
     if (this.animationId) return;
-    console.log('[AUDIO-VISUALIZER] Starting animation loop');
+    if (DEBUG) console.log('[AUDIO-VISUALIZER] Starting animation loop');
     this.draw();
   }
 

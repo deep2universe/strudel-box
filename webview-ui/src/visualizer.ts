@@ -1,6 +1,10 @@
 /**
  * Audio Visualizer using Web Audio AnalyserNode
  */
+
+// Debug flag for this file
+const DEBUG = false;
+
 export class Visualizer {
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
@@ -27,7 +31,7 @@ export class Visualizer {
       gainNode.connect(destination);
       gainNode.connect(this.analyser);
     } catch (err) {
-      console.warn('[VISUALIZER] Could not connect analyser:', err);
+      if (DEBUG) console.warn('[VISUALIZER] Could not connect analyser:', err);
     }
     
     const bufferLength = this.analyser.frequencyBinCount;

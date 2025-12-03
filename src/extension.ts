@@ -8,8 +8,11 @@ import { StrudelBoxPanel } from './StrudelBoxPanel';
 import { StrudelExplorerProvider } from './StrudelExplorerProvider';
 import { SampleBrowserProvider } from './SampleBrowserProvider';
 
+// Debug flag for this file
+const DEBUG = false;
+
 export function activate(context: vscode.ExtensionContext) {
-  console.log('[STRUDEL-BOX] Extension activated');
+  if (DEBUG) { console.log('[STRUDEL-BOX] Extension activated'); }
 
   // Register Strudel Explorer (Sidebar File Browser & Player)
   const explorerProvider = new StrudelExplorerProvider(context.extensionUri);

@@ -3,6 +3,9 @@
  * Handles sample loading with retry logic and error recovery
  */
 
+// Debug flag for this file
+const DEBUG = false;
+
 // =============================================================================
 // Types
 // =============================================================================
@@ -64,7 +67,7 @@ function log(message: string, level: LogLevel = 'info'): void {
     success: '✅'
   }[level];
   
-  console.log(`[SAMPLE-LOADER] ${prefix} ${message}`);
+  if (DEBUG) console.log(`[SAMPLE-LOADER] ${prefix} ${message}`);
   logCallback?.(message, level);
 }
 

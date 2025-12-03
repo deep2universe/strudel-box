@@ -5,6 +5,9 @@
 
 import * as vscode from 'vscode';
 
+// Debug flag for this file
+const DEBUG = false;
+
 interface SampleBrowserState {
   theme: 'tech' | 'halloween' | '8bit';
   searchQuery: string;
@@ -50,7 +53,7 @@ export class SampleBrowserProvider implements vscode.WebviewViewProvider {
   }
 
   private async _handleMessage(message: { command: string; payload?: unknown }): Promise<void> {
-    console.log('[SAMPLE-BROWSER] Message:', message.command, message.payload);
+    if (DEBUG) { console.log('[SAMPLE-BROWSER] Message:', message.command, message.payload); }
 
     switch (message.command) {
       case 'ready':
@@ -99,11 +102,11 @@ export class SampleBrowserProvider implements vscode.WebviewViewProvider {
         break;
 
       case 'log':
-        console.log('[SAMPLE-BROWSER-WEBVIEW]', message.payload);
+        if (DEBUG) { console.log('[SAMPLE-BROWSER-WEBVIEW]', message.payload); }
         break;
 
       case 'error':
-        console.error('[SAMPLE-BROWSER-WEBVIEW]', message.payload);
+        if (DEBUG) { console.error('[SAMPLE-BROWSER-WEBVIEW]', message.payload); }
         vscode.window.showErrorMessage(`Sample Browser: ${message.payload}`);
         break;
     }
@@ -457,8 +460,12 @@ export class SampleBrowserProvider implements vscode.WebviewViewProvider {
     return `
       const vscode = acquireVsCodeApi();
       
+      // Debug flag for webview
+      const DEBUG = false;
+      
       // ========== LOGGING ==========
       function log(msg, level = 'info') {
+        if (!DEBUG) return;
         const prefix = { info: 'ℹ️', warn: '⚠️', error: '❌', success: '✅' }[level] || 'ℹ️';
         console.log('[SAMPLE-BROWSER] ' + prefix + ' ' + msg);
         vscode.postMessage({ command: 'log', payload: prefix + ' ' + msg });

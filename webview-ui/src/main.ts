@@ -3,6 +3,9 @@
  * Uses @strudel/web for audio engine + CodeMirror for editing
  */
 
+// Debug flag for this file
+const DEBUG = false;
+
 import { postMessage, saveState, getState } from './vscode';
 import { ParticleSystem, ThemeType } from './particles';
 import { AudioVisualizerPanel, interceptAudioDestination } from './audioVisualizer';
@@ -70,7 +73,7 @@ const DEFAULT_CODE = `// 🎵 Welcome to Strudel Box!
 
 s("bd sd hh*4")`;
 
-console.log('[STRUDEL-BOX] Webview loaded');
+if (DEBUG) console.log('[STRUDEL-BOX] Webview loaded');
 
 // =============================================================================
 // Status Updates
@@ -102,14 +105,14 @@ async function waitForStrudel(): Promise<void> {
 async function loadSamples(): Promise<void> {
   if (areSamplesLoaded()) return;
   
-  console.log('[STRUDEL-BOX] Loading samples...');
+  if (DEBUG) console.log('[STRUDEL-BOX] Loading samples...');
   updateStatus('Loading samples...', 'ready');
   
   const success = await loadDefaultSamples();
   if (success) {
-    console.log('[STRUDEL-BOX] Samples loaded');
+    if (DEBUG) console.log('[STRUDEL-BOX] Samples loaded');
   } else {
-    console.warn('[STRUDEL-BOX] Some samples may not have loaded');
+    if (DEBUG) console.warn('[STRUDEL-BOX] Some samples may not have loaded');
   }
 }
 
@@ -121,13 +124,13 @@ async function initStrudel(): Promise<void> {
   try {
     await waitForStrudel();
     
-    console.log('[STRUDEL-BOX] Initializing Strudel REPL...');
+    if (DEBUG) console.log('[STRUDEL-BOX] Initializing Strudel REPL...');
     
     // Initialize Strudel REPL FIRST - this makes window.samples available
     repl = await window.initStrudel!();
     strudelReady = true;
     
-    console.log('[STRUDEL-BOX] Strudel ready:', Object.keys(repl));
+    if (DEBUG) console.log('[STRUDEL-BOX] Strudel ready:', Object.keys(repl));
     
     // Connect audio visualizer to AudioContext using Strudel's global
     const win = window as unknown as { getAudioContext?: () => AudioContext };
@@ -135,13 +138,13 @@ async function initStrudel(): Promise<void> {
       try {
         const audioCtx = win.getAudioContext();
         audioVisualizer.connect(audioCtx);
-        console.log('[STRUDEL-BOX] Audio visualizer connected to AudioContext');
+        if (DEBUG) console.log('[STRUDEL-BOX] Audio visualizer connected to AudioContext');
       } catch (e) {
-        console.warn('[STRUDEL-BOX] Could not connect visualizer:', e);
+        if (DEBUG) console.warn('[STRUDEL-BOX] Could not connect visualizer:', e);
       }
     } else if (audioVisualizer && repl.scheduler?.audioContext) {
       audioVisualizer.connect(repl.scheduler.audioContext);
-      console.log('[STRUDEL-BOX] Audio visualizer connected via scheduler');
+      if (DEBUG) console.log('[STRUDEL-BOX] Audio visualizer connected via scheduler');
     }
     
     // NOW load samples (after initStrudel made window.samples available)
@@ -150,7 +153,7 @@ async function initStrudel(): Promise<void> {
     updateStatus('Ready - Press Ctrl+Enter to play', 'ready');
     
   } catch (err) {
-    console.error('[STRUDEL-BOX] Failed to initialize Strudel:', err);
+    if (DEBUG) console.error('[STRUDEL-BOX] Failed to initialize Strudel:', err);
     updateStatus(`Error: ${err}`, 'error');
     addLog(`Failed to initialize: ${err}`, 'error');
   }
@@ -163,7 +166,7 @@ async function initStrudel(): Promise<void> {
 function initEditor(): void {
   const container = document.getElementById('editor');
   if (!container) {
-    console.error('[STRUDEL-BOX] Editor container not found');
+    if (DEBUG) console.error('[STRUDEL-BOX] Editor container not found');
     return;
   }
   
@@ -186,7 +189,7 @@ function initEditor(): void {
     }
   );
   
-  console.log('[STRUDEL-BOX] Editor initialized');
+  if (DEBUG) console.log('[STRUDEL-BOX] Editor initialized');
 }
 
 // =============================================================================
@@ -196,7 +199,7 @@ function initEditor(): void {
 async function playPattern(code?: string): Promise<void> {
   // Always ensure Strudel and samples are loaded
   if (!repl || !strudelReady) {
-    console.log('[STRUDEL-BOX] Initializing Strudel before play...');
+    if (DEBUG) console.log('[STRUDEL-BOX] Initializing Strudel before play...');
     updateStatus('Initializing...', 'ready');
     addLog('Initializing Strudel audio engine...', 'info');
     await initStrudel();
@@ -223,7 +226,7 @@ async function playPattern(code?: string): Promise<void> {
   warnAboutUnknownBanks(patternCode);
   
   try {
-    console.log('[STRUDEL-BOX] Evaluating pattern...');
+    if (DEBUG) console.log('[STRUDEL-BOX] Evaluating pattern...');
     addLog('Evaluating pattern...', 'info');
     await repl.evaluate(patternCode);
     updateStatus('▶ Playing', 'playing');
@@ -237,7 +240,7 @@ async function playPattern(code?: string): Promise<void> {
     saveCurrentState();
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);
-    console.error('[STRUDEL-BOX] Evaluation error:', err);
+    if (DEBUG) console.error('[STRUDEL-BOX] Evaluation error:', err);
     updateStatus(`Error: ${errorMsg}`, 'error');
     addLog(`Evaluation error: ${errorMsg}`, 'error');
   }
@@ -249,13 +252,13 @@ function stopPattern(): void {
   try {
     repl.stop();
     updateStatus('⏹ Stopped', 'stopped');
-    console.log('[STRUDEL-BOX] Pattern stopped');
+    if (DEBUG) console.log('[STRUDEL-BOX] Pattern stopped');
     addLog('Pattern stopped', 'info');
     
     // Stop audio visualizer animation
     audioVisualizer?.stop();
   } catch (err) {
-    console.error('[STRUDEL-BOX] Stop error:', err);
+    if (DEBUG) console.error('[STRUDEL-BOX] Stop error:', err);
   }
 }
 
@@ -281,7 +284,7 @@ function setTheme(theme: ThemeType): void {
     particleSystem.setTheme(theme);
   }
   saveCurrentState();
-  console.log(`[STRUDEL-BOX] Theme changed to: ${theme}`);
+  if (DEBUG) console.log(`[STRUDEL-BOX] Theme changed to: ${theme}`);
 }
 
 function applyTheme(theme: ThemeType): void {
@@ -316,7 +319,7 @@ setInterval(saveCurrentState, 5000);
 function setupVSCodeBridge(): void {
   window.addEventListener('message', (event) => {
     const message = event.data;
-    console.log('[STRUDEL-BOX] Message from extension:', message.command);
+    if (DEBUG) console.log('[STRUDEL-BOX] Message from extension:', message.command);
 
     switch (message.command) {
       case 'loadCode':
@@ -398,7 +401,7 @@ function setupKeyboardShortcuts(): void {
 // =============================================================================
 
 async function init(): Promise<void> {
-  console.log('[STRUDEL-BOX] Initializing...');
+  if (DEBUG) console.log('[STRUDEL-BOX] Initializing...');
 
   // Restore saved state
   const savedState = getState<AppState>();
@@ -446,7 +449,7 @@ async function init(): Promise<void> {
   // Notify extension that we're ready
   postMessage('ready');
 
-  console.log('[STRUDEL-BOX] Initialization complete');
+  if (DEBUG) console.log('[STRUDEL-BOX] Initialization complete');
 }
 
 // Start initialization when DOM is ready

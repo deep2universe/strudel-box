@@ -5,6 +5,9 @@
 
 import * as vscode from 'vscode';
 
+// Debug flag for this file
+const DEBUG = false;
+
 interface StrudelFile {
   name: string;
   uri: vscode.Uri;
@@ -163,7 +166,7 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
   }
 
   private async _handleMessage(message: { command: string; payload?: unknown }): Promise<void> {
-    console.log('[STRUDEL-EXPLORER] Received message:', message.command, message.payload);
+    if (DEBUG) { console.log('[STRUDEL-EXPLORER] Received message:', message.command, message.payload); }
     
     switch (message.command) {
       case 'ready':
@@ -172,7 +175,7 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
         break;
 
       case 'play':
-        console.log('[STRUDEL-EXPLORER] Play requested for:', message.payload);
+        if (DEBUG) { console.log('[STRUDEL-EXPLORER] Play requested for:', message.payload); }
         await this._playFile(message.payload as string);
         break;
 
@@ -227,37 +230,37 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
   }
 
   private async _playFile(relativePath: string): Promise<void> {
-    console.log('[STRUDEL-EXPLORER] _playFile called with:', relativePath);
+    if (DEBUG) { console.log('[STRUDEL-EXPLORER] _playFile called with:', relativePath); }
     
     // Normalize path separators for comparison
     const normalizedPath = relativePath.replace(/\\/g, '/');
-    console.log('[STRUDEL-EXPLORER] Normalized path:', normalizedPath);
-    console.log('[STRUDEL-EXPLORER] Available files:', this._files.map(f => ({
+    if (DEBUG) { console.log('[STRUDEL-EXPLORER] Normalized path:', normalizedPath); }
+    if (DEBUG) { console.log('[STRUDEL-EXPLORER] Available files:', this._files.map(f => ({
       original: f.relativePath,
       normalized: f.relativePath.replace(/\\/g, '/')
-    })));
+    }))); }
     
     const file = this._files.find(f => f.relativePath.replace(/\\/g, '/') === normalizedPath);
     
     if (!file) { 
-      console.error('[STRUDEL-EXPLORER] File not found:', relativePath);
+      if (DEBUG) { console.error('[STRUDEL-EXPLORER] File not found:', relativePath); }
       vscode.window.showErrorMessage(`File not found: ${relativePath}`);
       return; 
     }
     
-    console.log('[STRUDEL-EXPLORER] Found file:', file.uri.toString());
+    if (DEBUG) { console.log('[STRUDEL-EXPLORER] Found file:', file.uri.toString()); }
 
     try {
       // Read the file content fresh from disk
       const content = await vscode.workspace.fs.readFile(file.uri);
       const code = Buffer.from(content).toString('utf-8');
       
-      console.log('[STRUDEL-EXPLORER] Read code length:', code.length);
-      console.log('[STRUDEL-EXPLORER] Code preview:', code.substring(0, 100));
+      if (DEBUG) { console.log('[STRUDEL-EXPLORER] Read code length:', code.length); }
+      if (DEBUG) { console.log('[STRUDEL-EXPLORER] Code preview:', code.substring(0, 100)); }
 
       // Send code to the player webview to play
       this._sendMessage('playCode', code, relativePath);
-      console.log('[STRUDEL-EXPLORER] Sent playCode message');
+      if (DEBUG) { console.log('[STRUDEL-EXPLORER] Sent playCode message'); }
 
       this._state.currentTrack = relativePath;
       this._state.isPlaying = true;
@@ -299,7 +302,7 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
     const normalizedPath = relativePath.replace(/\\/g, '/');
     const file = this._files.find(f => f.relativePath.replace(/\\/g, '/') === normalizedPath);
     if (!file) {
-      console.error('[STRUDEL] File not found for StrudelCC:', relativePath);
+      if (DEBUG) { console.error('[STRUDEL] File not found for StrudelCC:', relativePath); }
       return;
     }
 
@@ -325,7 +328,7 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
     const normalizedPath = relativePath.replace(/\\/g, '/');
     const file = this._files.find(f => f.relativePath.replace(/\\/g, '/') === normalizedPath);
     if (!file) {
-      console.error('[STRUDEL] File not found for editor:', relativePath);
+      if (DEBUG) { console.error('[STRUDEL] File not found for editor:', relativePath); }
       return;
     }
 
@@ -744,6 +747,9 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
     return `
       const vscode = acquireVsCodeApi();
       
+      // Debug flag for webview
+      const DEBUG = false;
+      
       let state = {
         currentTrack: null,
         isPlaying: false,
@@ -787,22 +793,22 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
       async function loadSamples() {
         if (samplesLoaded || samplesLoading) return;
         if (!window.samples) {
-          console.warn('window.samples not available yet');
+          if (DEBUG) console.warn('window.samples not available yet');
           return;
         }
         
         samplesLoading = true;
-        console.log('Loading sample libraries...');
+        if (DEBUG) console.log('Loading sample libraries...');
         
         let successCount = 0;
         for (const { json, name } of SAMPLE_SOURCES) {
           try {
-            console.log('Loading ' + name + '...');
+            if (DEBUG) console.log('Loading ' + name + '...');
             await window.samples(json);
             successCount++;
-            console.log('Loaded ' + name);
+            if (DEBUG) console.log('Loaded ' + name);
           } catch (err) {
-            console.warn('Could not load ' + name + ':', err);
+            if (DEBUG) console.warn('Could not load ' + name + ':', err);
           }
         }
         
@@ -810,30 +816,30 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
         try {
           await window.samples('github:tidalcycles/Dirt-Samples/master');
           successCount++;
-          console.log('Loaded Dirt-Samples from GitHub');
+          if (DEBUG) console.log('Loaded Dirt-Samples from GitHub');
         } catch (err) {
-          console.warn('Could not load GitHub samples:', err);
+          if (DEBUG) console.warn('Could not load GitHub samples:', err);
         }
         
         samplesLoaded = successCount > 0;
         samplesLoading = false;
-        console.log('Sample loading complete. Loaded ' + successCount + ' libraries.');
+        if (DEBUG) console.log('Sample loading complete. Loaded ' + successCount + ' libraries.');
       }
       
       async function initAudioEngine() {
         if (repl) return;
         if (!strudelInit) {
-          console.error('Strudel not loaded from CDN');
+          if (DEBUG) console.error('Strudel not loaded from CDN');
           return;
         }
         try {
           repl = await strudelInit();
-          console.log('Strudel initialized');
+          if (DEBUG) console.log('Strudel initialized');
           
           // Load samples AFTER Strudel init (window.samples becomes available)
           await loadSamples();
         } catch (err) {
-          console.error('Failed to init Strudel:', err);
+          if (DEBUG) console.error('Failed to init Strudel:', err);
         }
       }
 
@@ -853,7 +859,7 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
           updateUI();
           vscode.postMessage({ command: 'playbackStarted' });
         } catch (err) {
-          console.error('Playback error:', err);
+          if (DEBUG) console.error('Playback error:', err);
         }
       }
 
@@ -919,11 +925,11 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
             break;
           case 'playCode':
             // Stop current playback first, then play new code
-            console.log('[WEBVIEW] Received playCode message');
-            console.log('[WEBVIEW] Track:', message.track);
-            console.log('[WEBVIEW] Payload type:', typeof message.payload);
-            console.log('[WEBVIEW] Payload length:', message.payload ? message.payload.length : 'null/undefined');
-            console.log('[WEBVIEW] Payload preview:', message.payload ? message.payload.substring(0, 100) : 'empty');
+            if (DEBUG) console.log('[WEBVIEW] Received playCode message');
+            if (DEBUG) console.log('[WEBVIEW] Track:', message.track);
+            if (DEBUG) console.log('[WEBVIEW] Payload type:', typeof message.payload);
+            if (DEBUG) console.log('[WEBVIEW] Payload length:', message.payload ? message.payload.length : 'null/undefined');
+            if (DEBUG) console.log('[WEBVIEW] Payload preview:', message.payload ? message.payload.substring(0, 100) : 'empty');
             
             stopPlayback();
             state.currentTrack = message.track;
@@ -941,9 +947,9 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
       let expandedFolders = new Set();
       
       function renderFileList() {
-        console.log('[WEBVIEW] renderFileList called');
-        console.log('[WEBVIEW] fileTree:', JSON.stringify(fileTree, null, 2));
-        console.log('[WEBVIEW] flatPlaylist:', flatPlaylist);
+        if (DEBUG) console.log('[WEBVIEW] renderFileList called');
+        if (DEBUG) console.log('[WEBVIEW] fileTree:', JSON.stringify(fileTree, null, 2));
+        if (DEBUG) console.log('[WEBVIEW] flatPlaylist:', flatPlaylist);
         
         if (!fileTree || fileTree.length === 0) {
           fileList.innerHTML = '<div class="empty-state">No .strudel files found</div>';
@@ -1018,7 +1024,7 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
           const fileItem = target.closest('.file-item');
           if (fileItem) {
             const path = fileItem.dataset.path;
-            console.log('[WEBVIEW] Play button clicked for:', path);
+            if (DEBUG) console.log('[WEBVIEW] Play button clicked for:', path);
             vscode.postMessage({ command: 'play', payload: path });
           }
           return;
@@ -1030,7 +1036,7 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
           const fileItem = target.closest('.file-item');
           if (fileItem) {
             const path = fileItem.dataset.path;
-            console.log('[WEBVIEW] Link button clicked for:', path);
+            if (DEBUG) console.log('[WEBVIEW] Link button clicked for:', path);
             vscode.postMessage({ command: 'openInStrudelCC', payload: path });
           }
           return;
@@ -1042,7 +1048,7 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
           const fileItem = target.closest('.file-item');
           if (fileItem) {
             const path = fileItem.dataset.path;
-            console.log('[WEBVIEW] Edit button clicked for:', path);
+            if (DEBUG) console.log('[WEBVIEW] Edit button clicked for:', path);
             vscode.postMessage({ command: 'openInEditor', payload: path });
           }
           return;
@@ -1054,7 +1060,7 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
         const fileItem = e.target.closest('.file-item');
         if (fileItem) {
           const path = fileItem.dataset.path;
-          console.log('[WEBVIEW] Double-click on file:', path);
+          if (DEBUG) console.log('[WEBVIEW] Double-click on file:', path);
           vscode.postMessage({ command: 'play', payload: path });
         }
       });
@@ -1062,9 +1068,9 @@ export class StrudelExplorerProvider implements vscode.WebviewViewProvider {
       function attachTreeEventHandlers() {
         // Event delegation is used instead - this function is now just for logging
         const fileItems = fileList.querySelectorAll('.file-item');
-        console.log('[WEBVIEW] Total file items in DOM:', fileItems.length);
+        if (DEBUG) console.log('[WEBVIEW] Total file items in DOM:', fileItems.length);
         fileItems.forEach(item => {
-          console.log('[WEBVIEW] File in DOM:', item.dataset.path);
+          if (DEBUG) console.log('[WEBVIEW] File in DOM:', item.dataset.path);
         });
       }
 

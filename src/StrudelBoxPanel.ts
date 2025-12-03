@@ -5,6 +5,9 @@
 
 import * as vscode from 'vscode';
 
+// Debug flag for this file
+const DEBUG = false;
+
 export class StrudelBoxPanel {
   public static currentPanel: StrudelBoxPanel | undefined;
 
@@ -99,7 +102,7 @@ export class StrudelBoxPanel {
   private async _handleMessage(message: { command: string; payload?: unknown }): Promise<void> {
     switch (message.command) {
       case 'ready':
-        console.log('[STRUDEL-BOX] Webview ready');
+        if (DEBUG) { console.log('[STRUDEL-BOX] Webview ready'); }
         break;
       case 'error':
         vscode.window.showErrorMessage(`Strudel Box: ${message.payload}`);
@@ -110,7 +113,7 @@ export class StrudelBoxPanel {
       case 'codeResponse':
         break;
       case 'log':
-        console.log('[STRUDEL-BOX]', message.payload);
+        if (DEBUG) { console.log('[STRUDEL-BOX]', message.payload); }
         break;
     }
   }
