@@ -33,10 +33,7 @@ export function activate(context: vscode.ExtensionContext) {
     StrudelBoxPanel.createOrShow(context.extensionUri);
   });
 
-  // Command: Focus Strudel Explorer
-  const focusExplorerCommand = vscode.commands.registerCommand('strudel-box.focusExplorer', () => {
-    vscode.commands.executeCommand('strudel-box.explorer.focus');
-  });
+
 
   // Command: Hush (stop all audio)
   const hushCommand = vscode.commands.registerCommand('strudel-box.hush', () => {
@@ -115,7 +112,6 @@ export function activate(context: vscode.ExtensionContext) {
     explorerView,
     sampleBrowserView,
     openCommand,
-    focusExplorerCommand,
     hushCommand,
     evaluateActiveCommand,
     loadFileCommand,

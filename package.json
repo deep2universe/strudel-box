@@ -68,10 +68,6 @@
       {
         "command": "strudel-box.openInRepl",
         "title": "Open in Strudel Box"
-      },
-      {
-        "command": "strudel-box.focusExplorer",
-        "title": "Strudel Box: Open File Explorer"
       }
     ],
     "viewsContainers": {
@@ -80,11 +76,6 @@
           "id": "strudel-player",
           "title": "Strudel Player",
           "icon": "icons/strudel-activity-bar.svg"
-        },
-        {
-          "id": "sample-browser",
-          "title": "Sample Browser",
-          "icon": "icons/sample-browser.svg"
         }
       ]
     },
@@ -95,14 +86,6 @@
           "id": "strudel-box.explorer",
           "name": "Strudel Player",
           "contextualTitle": "Strudel Player"
-        }
-      ],
-      "sample-browser": [
-        {
-          "type": "webview",
-          "id": "strudel-box.sampleBrowser",
-          "name": "Sample Browser",
-          "contextualTitle": "Sample Browser"
         }
       ]
     },
