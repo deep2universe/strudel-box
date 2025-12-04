@@ -131,7 +131,7 @@ async function openFileInStrudelBox(extensionUri: vscode.Uri, fileUri: vscode.Ur
     
     setTimeout(() => {
       if (StrudelBoxPanel.currentPanel) {
-        StrudelBoxPanel.currentPanel.loadCode(code);
+        StrudelBoxPanel.currentPanel.loadCode(code, fileUri);
       }
     }, 500);
   } catch (err) {
