@@ -2,7 +2,7 @@
   "name": "strudel-box",
   "displayName": "strudel-box",
   "description": "Live code music patterns in VS Code. Create algorithmic beats with real-time audio, stunning visuals, and zero setup.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "deep2universe",
   "author": {
     "name": "deep2universe",
