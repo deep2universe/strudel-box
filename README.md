@@ -6,7 +6,7 @@
 
 **Code your beats. Visualize your sound. Share your vibe.**
 
-📺 [Watch the Demo (1:57)](https://youtu.be/Io-uJecAeq4?si=0jKCdDF5saX0u_H4)
+📺 [Watch the Demo (2:40)](https://www.youtube.com/watch?v=iuMaoxbjEkc)
 
 [strudel-box](https://marketplace.visualstudio.com/items?itemName=deep2universe.strudel-box) is a VS Code extension that brings the power of [Strudel](https://strudel.cc) live coding directly into your editor. Create algorithmic music patterns, experiment with sounds, and perform live — all without leaving VS Code.
 
@@ -22,7 +22,7 @@ strudel-box is fully compatible with VS Code and works out of the box. However, 
 |---------|-------------|
 | **Spec-Driven Development** | Use Kiro's structured specs to design and iterate on complex musical patterns with AI guidance |
 | **Vibe Coding** | Let AI help you explore new sounds, suggest pattern variations, and remix your beats in real-time |
-| **Kiro Template** | Get started instantly with our [strudel-box-template](https://github.com/deep2universe/strudel-box-template) — pre-configured steering rules, example patterns, and AI prompts for music creation |
+| **Kiro Template** | Get started instantly with our [strudel-box-template](https://github.com/deep2universe/strudel-box-template) — pre-configured steering rules, hooks, example patterns, and AI prompts for music creation |
 
 ---
 
